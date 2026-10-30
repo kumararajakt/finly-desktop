@@ -30,7 +30,6 @@ function App() {
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
   const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
   const [currentTheme, setCurrentTheme] = createSignal<ThemeMode>("auto");
-  const [loading, setLoading] = createSignal(true);
 
   // Load persisted SQLite data, theme, and user profile on launch
   onMount(async () => {
@@ -57,8 +56,6 @@ function App() {
     } catch (err) {
       console.error("Error loading SQLite database records:", err);
       setShowOnboarding(true);
-    } finally {
-      setLoading(false);
     }
   });
 

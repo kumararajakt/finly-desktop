@@ -1,5 +1,5 @@
 import { Component, createSignal, For } from "solid-js";
-import { X, User, Globe, Coins, Check, Sun, Moon, Monitor } from "./icons";
+import { X, User, Globe, Check, Sun, Moon, Monitor } from "./icons";
 import { COUNTRIES, getCurrencyByCountry } from "../utils/countries";
 import { ThemeMode, UserProfile } from "../types/finance";
 import { applyTheme } from "../utils/theme";
