@@ -1,88 +1,94 @@
-import { createSignal } from "solid-js";
+import { createSignal, onMount } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
 import { Account, Transaction } from "./types/finance";
+import {
+  fetchAccounts,
+  fetchTransactions,
+  insertTransaction,
+  removeTransaction,
+  toggleTransactionFlag,
+  batchImportTransactions,
+} from "./utils/db";
 import "./App.css";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
-
-  const [accounts, setAccounts] = createSignal<Account[]>([
-    { id: "1", name: "Chase Checking", type: "checking", balance: 0.00 },
-    { id: "2", name: "High-Yield Savings", type: "savings", balance: 0.00 },
-    { id: "3", name: "Credit Card", type: "credit", balance: 0.00 },
-  ]);
-
-  // Clean empty transaction state (no dummy data)
+  const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
+  const [loading, setLoading] = createSignal(true);
 
-  const handleAddTransaction = (newTx: Omit<Transaction, "id">) => {
-    const created: Transaction = {
-      ...newTx,
-      id: `tx-${Date.now()}`,
-    };
-    setTransactions([created, ...transactions()]);
+  // Load persisted SQLite data on application launch
+  onMount(async () => {
+    try {
+      const [loadedAccounts, loadedTransactions] = await Promise.all([
+        fetchAccounts(),
+        fetchTransactions(),
+      ]);
+      setAccounts(loadedAccounts);
+      setTransactions(loadedTransactions);
+    } catch (err) {
+      console.error("Error loading SQLite database records:", err);
+    } finally {
+      setLoading(false);
+    }
+  });
 
-    // Update account balance automatically
-    setAccounts(
-      accounts().map((acc) =>
-        acc.name === newTx.account
-          ? { ...acc, balance: acc.balance + newTx.amount }
-          : acc
-      )
-    );
+  const handleAddTransaction = async (newTx: Omit<Transaction, "id">) => {
+    try {
+      const created = await insertTransaction(newTx);
+      setTransactions([created, ...transactions()]);
+
+      // Refresh accounts with updated balances from SQLite
+      const updatedAccounts = await fetchAccounts();
+      setAccounts(updatedAccounts);
+    } catch (err) {
+      console.error("Failed to insert transaction:", err);
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    const tx = transactions().find((t) => t.id === id);
-    if (tx) {
-      // Revert account balance
-      setAccounts(
-        accounts().map((acc) =>
-          acc.name === tx.account
-            ? { ...acc, balance: acc.balance - tx.amount }
-            : acc
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await removeTransaction(id);
+      setTransactions(transactions().filter((t) => t.id !== id));
+
+      // Refresh accounts with reverted balances from SQLite
+      const updatedAccounts = await fetchAccounts();
+      setAccounts(updatedAccounts);
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+    }
+  };
+
+  const handleToggleFlag = async (id: string) => {
+    try {
+      const nextStatus = await toggleTransactionFlag(id);
+      setTransactions(
+        transactions().map((t) =>
+          t.id === id ? { ...t, status: nextStatus as any } : t
         )
       );
+    } catch (err) {
+      console.error("Failed to toggle transaction flag:", err);
     }
-    setTransactions(transactions().filter((t) => t.id !== id));
   };
 
-  const handleToggleFlag = (id: string) => {
-    setTransactions(
-      transactions().map((t) =>
-        t.id === id
-          ? { ...t, status: t.status === "flagged" ? "cleared" : "flagged" }
-          : t
-      )
-    );
-  };
+  const handleImportCSV = async (imported: Omit<Transaction, "id">[]) => {
+    try {
+      await batchImportTransactions(imported);
 
-  const handleImportCSV = (imported: Omit<Transaction, "id">[]) => {
-    const withIds: Transaction[] = imported.map((tx, idx) => ({
-      ...tx,
-      id: `tx-imp-${Date.now()}-${idx}`,
-    }));
-    setTransactions([...withIds, ...transactions()]);
-
-    // Discover any new accounts in the CSV and update/create them
-    const currentAccounts = [...accounts()];
-    imported.forEach((tx) => {
-      const existing = currentAccounts.find((a) => a.name.toLowerCase() === tx.account.toLowerCase());
-      if (existing) {
-        existing.balance += tx.amount;
-      } else {
-        currentAccounts.push({
-          id: `acc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          name: tx.account,
-          type: tx.account.toLowerCase().includes("credit") ? "credit" : "checking",
-          balance: tx.amount,
-        });
-      }
-    });
-    setAccounts(currentAccounts);
+      // Re-fetch all fresh records and balances from SQLite
+      const [refreshedTxs, refreshedAccs] = await Promise.all([
+        fetchTransactions(),
+        fetchAccounts(),
+      ]);
+      setTransactions(refreshedTxs);
+      setAccounts(refreshedAccs);
+    } catch (err) {
+      console.error("Failed to batch import transactions:", err);
+    }
   };
 
   return (
