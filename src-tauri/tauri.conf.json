@@ -13,10 +13,11 @@
     "windows": [
       {
         "title": "Finly",
-        "width": 1100,
-        "height": 720,
-        "minWidth": 800,
-        "minHeight": 600
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true
       }
     ],
     "security": {
