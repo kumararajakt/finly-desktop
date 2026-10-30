@@ -2,6 +2,7 @@ import { createSignal, onMount } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
+import { AccountModal } from "./components/AccountModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { Account, Transaction, UserProfile } from "./types/finance";
 import {
@@ -13,11 +14,13 @@ import {
   batchImportTransactions,
   getUserProfile,
   saveUserProfile,
+  insertAccount,
 } from "./utils/db";
 import "./App.css";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = createSignal(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = createSignal(false);
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
@@ -116,6 +119,16 @@ function App() {
     }
   };
 
+  const handleCreateAccount = async (newAcc: { name: string; type: string; balance: number }) => {
+    try {
+      await insertAccount(newAcc);
+      const updated = await fetchAccounts();
+      setAccounts(updated);
+    } catch (err) {
+      console.error("Failed to add account:", err);
+    }
+  };
+
   return (
     <div class="flex h-screen w-screen overflow-hidden bg-canvas font-sans text-text-main">
       {/* Sidebar with Transactions Navigation & Accounts */}
@@ -127,6 +140,7 @@ function App() {
         currencySymbol={userProfile()?.currencySymbol}
         onSelectFilter={(filter) => setActiveFilter(filter)}
         onOpenAddTransaction={() => setIsModalOpen(true)}
+        onOpenAddAccount={() => setIsAccountModalOpen(true)}
       />
 
       {/* Main Page Area */}
@@ -148,6 +162,15 @@ function App() {
           currencySymbol={userProfile()?.currencySymbol}
           onClose={() => setIsModalOpen(false)}
           onSave={handleAddTransaction}
+        />
+      )}
+
+      {/* Account Modal */}
+      {isAccountModalOpen() && (
+        <AccountModal
+          currencySymbol={userProfile()?.currencySymbol}
+          onClose={() => setIsAccountModalOpen(false)}
+          onSave={handleCreateAccount}
         />
       )}
 

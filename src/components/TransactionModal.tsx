@@ -14,7 +14,7 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
   const [amount, setAmount] = createSignal("");
   const [type, setType] = createSignal<"expense" | "income">("expense");
   const [category, setCategory] = createSignal("Groceries");
-  const [account, setAccount] = createSignal(props.accounts[0]?.name || "Chase Checking");
+  const [account, setAccount] = createSignal(props.accounts[0]?.name || "");
   const [date, setDate] = createSignal(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = createSignal("");
   const [isPending, setIsPending] = createSignal(false);
@@ -145,15 +145,26 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
               <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
                 Account
               </label>
-              <select
-                value={account()}
-                onChange={(e) => setAccount(e.currentTarget.value)}
-                class="w-full bg-white border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
-              >
-                {props.accounts.map((a) => (
-                  <option value={a.name}>{a.name}</option>
-                ))}
-              </select>
+              {props.accounts.length > 0 ? (
+                <select
+                  value={account()}
+                  onChange={(e) => setAccount(e.currentTarget.value)}
+                  class="w-full bg-white border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                >
+                  {props.accounts.map((a) => (
+                    <option value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Checking"
+                  value={account()}
+                  onInput={(e) => setAccount(e.currentTarget.value)}
+                  class="w-full bg-white border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                />
+              )}
             </div>
           </div>
 

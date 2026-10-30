@@ -140,13 +140,7 @@ export async function fetchAccounts(): Promise<Account[]> {
 
   // Browser fallback
   const local = localStorage.getItem("finly_accounts");
-  return local
-    ? JSON.parse(local)
-    : [
-        { id: "1", name: "Chase Checking", type: "checking", balance: 0.0 },
-        { id: "2", name: "High-Yield Savings", type: "savings", balance: 0.0 },
-        { id: "3", name: "Credit Card", type: "credit", balance: 0.0 },
-      ];
+  return local ? JSON.parse(local) : [];
 }
 
 export async function insertAccount(

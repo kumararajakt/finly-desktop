@@ -122,23 +122,6 @@ impl DbState {
             [],
         )?;
 
-        // Seed default accounts if empty
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM accounts", [], |row| row.get(0))?;
-        if count == 0 {
-            let defaults = [
-                ("Chase Checking", "checking", 0.0),
-                ("High-Yield Savings", "savings", 0.0),
-                ("Credit Card", "credit", 0.0),
-            ];
-            for (name, acc_type, bal) in defaults {
-                let id = Uuid::new_v4().to_string();
-                conn.execute(
-                    "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
-                    params![id, name, acc_type, bal],
-                )?;
-            }
-        }
-
         Ok(DbState {
             conn: Mutex::new(conn),
         })

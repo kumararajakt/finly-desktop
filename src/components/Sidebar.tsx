@@ -23,6 +23,7 @@ interface SidebarProps {
   currencySymbol?: string;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
+  onOpenAddAccount?: () => void;
 }
 
 export const Sidebar: Component<SidebarProps> = (props) => {
@@ -179,39 +180,46 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             </span>
             <button
               type="button"
+              onClick={props.onOpenAddAccount}
               class="text-[11px] text-primary hover:text-primary-hover font-semibold cursor-pointer"
             >
               + Add
             </button>
           </div>
 
-          {props.accounts.map((acc) => {
-            const isNegative = acc.balance < 0;
-            return (
-              <div class="flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-slate-50 transition-colors">
-                <div class="flex items-center gap-2.5 truncate">
-                  {acc.type === "credit" ? (
-                    <CreditCard class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  ) : acc.type === "savings" ? (
-                    <Wallet class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  ) : (
-                    <Building2 class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  )}
-                  <span class="text-text-main font-medium truncate">{acc.name}</span>
+          {props.accounts.length === 0 ? (
+            <div class="px-3 py-2.5 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
+              No accounts yet
+            </div>
+          ) : (
+            props.accounts.map((acc) => {
+              const isNegative = acc.balance < 0;
+              return (
+                <div class="flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-slate-50 transition-colors">
+                  <div class="flex items-center gap-2.5 truncate">
+                    {acc.type === "credit" ? (
+                      <CreditCard class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    ) : acc.type === "savings" ? (
+                      <Wallet class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    ) : (
+                      <Building2 class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    )}
+                    <span class="text-text-main font-medium truncate">{acc.name}</span>
+                  </div>
+                  <span
+                    class={`font-semibold shrink-0 ml-2 ${
+                      isNegative ? "text-slate-900" : "text-text-main"
+                    }`}
+                  >
+                    {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
                 </div>
-                <span
-                  class={`font-semibold shrink-0 ml-2 ${
-                    isNegative ? "text-slate-900" : "text-text-main"
-                  }`}
-                >
-                  {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
