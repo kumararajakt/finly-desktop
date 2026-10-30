@@ -18,3 +18,7 @@ export { default as Filter } from "lucide-solid/icons/filter";
 export { default as Trash2 } from "lucide-solid/icons/trash-2";
 export { default as Upload } from "lucide-solid/icons/upload";
 export { default as X } from "lucide-solid/icons/x";
+export { default as User } from "lucide-solid/icons/user";
+export { default as Globe } from "lucide-solid/icons/globe";
+export { default as Coins } from "lucide-solid/icons/coins";
+export { default as Check } from "lucide-solid/icons/check";

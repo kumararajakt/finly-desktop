@@ -21,3 +21,10 @@ export interface Account {
   type: "checking" | "savings" | "credit" | "investment" | "loan";
   balance: number;
 }
+
+export interface UserProfile {
+  name: string;
+  country: string;
+  currencyCode: string; // e.g. "INR", "USD"
+  currencySymbol: string; // e.g. "₹", "$"
+}

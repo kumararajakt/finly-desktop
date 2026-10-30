@@ -52,6 +52,16 @@ fn add_account(state: tauri::State<'_, DbState>, account: NewAccount) -> Result<
     state.add_account(account).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_setting(state: tauri::State<'_, DbState>, key: String) -> Result<Option<String>, String> {
+    state.get_setting(&key).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_setting(state: tauri::State<'_, DbState>, key: String, value: String) -> Result<(), String> {
+    state.set_setting(&key, &value).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -75,7 +85,9 @@ pub fn run() {
             toggle_flag_transaction,
             import_transactions,
             get_accounts,
-            add_account
+            add_account,
+            get_setting,
+            set_setting
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,7 +2,8 @@ import { createSignal, onMount } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
-import { Account, Transaction } from "./types/finance";
+import { OnboardingModal } from "./components/OnboardingModal";
+import { Account, Transaction, UserProfile } from "./types/finance";
 import {
   fetchAccounts,
   fetchTransactions,
@@ -10,31 +11,55 @@ import {
   removeTransaction,
   toggleTransactionFlag,
   batchImportTransactions,
+  getUserProfile,
+  saveUserProfile,
 } from "./utils/db";
 import "./App.css";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = createSignal(false);
+  const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
+  const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
   const [loading, setLoading] = createSignal(true);
 
-  // Load persisted SQLite data on application launch
+  // Load persisted SQLite data and user profile on launch
   onMount(async () => {
     try {
-      const [loadedAccounts, loadedTransactions] = await Promise.all([
+      const [loadedProfile, loadedAccounts, loadedTransactions] = await Promise.all([
+        getUserProfile(),
         fetchAccounts(),
         fetchTransactions(),
       ]);
+
+      if (loadedProfile) {
+        setUserProfile(loadedProfile);
+      } else {
+        // If no profile exists yet, trigger onboarding dialog
+        setShowOnboarding(true);
+      }
+
       setAccounts(loadedAccounts);
       setTransactions(loadedTransactions);
     } catch (err) {
       console.error("Error loading SQLite database records:", err);
+      setShowOnboarding(true);
     } finally {
       setLoading(false);
     }
   });
+
+  const handleCompleteOnboarding = async (profile: UserProfile) => {
+    try {
+      await saveUserProfile(profile);
+      setUserProfile(profile);
+      setShowOnboarding(false);
+    } catch (err) {
+      console.error("Failed to save user profile:", err);
+    }
+  };
 
   const handleAddTransaction = async (newTx: Omit<Transaction, "id">) => {
     try {
@@ -98,6 +123,8 @@ function App() {
         accounts={accounts()}
         transactions={transactions()}
         activeFilter={activeFilter()}
+        userName={userProfile()?.name}
+        currencySymbol={userProfile()?.currencySymbol}
         onSelectFilter={(filter) => setActiveFilter(filter)}
         onOpenAddTransaction={() => setIsModalOpen(true)}
       />
@@ -106,6 +133,7 @@ function App() {
       <TransactionsMainPage
         transactions={transactions()}
         activeFilter={activeFilter()}
+        currencySymbol={userProfile()?.currencySymbol}
         onFilterChange={(filter) => setActiveFilter(filter)}
         onOpenAddTransaction={() => setIsModalOpen(true)}
         onDeleteTransaction={handleDeleteTransaction}
@@ -117,9 +145,15 @@ function App() {
       {isModalOpen() && (
         <TransactionModal
           accounts={accounts()}
+          currencySymbol={userProfile()?.currencySymbol}
           onClose={() => setIsModalOpen(false)}
           onSave={handleAddTransaction}
         />
+      )}
+
+      {/* Initial Welcome & Country / Currency Onboarding Dialog */}
+      {showOnboarding() && (
+        <OnboardingModal onComplete={handleCompleteOnboarding} />
       )}
     </div>
   );

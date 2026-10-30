@@ -18,6 +18,7 @@ import { parseTransactionsCSV } from "../utils/csv";
 interface TransactionsMainPageProps {
   transactions: Transaction[];
   activeFilter: string;
+  currencySymbol?: string;
   onFilterChange: (filter: string) => void;
   onOpenAddTransaction: () => void;
   onDeleteTransaction: (id: string) => void;
@@ -26,6 +27,7 @@ interface TransactionsMainPageProps {
 }
 
 export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props) => {
+  const symbol = () => props.currencySymbol || "$";
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
 
@@ -142,7 +144,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </div>
           <div class="my-1">
             <span class="text-2xl font-bold text-text-main tracking-tight">
-              +${totalInflow().toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              +{symbol()}{totalInflow().toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div class="text-xs text-text-muted mt-2">Current month total</div>
@@ -158,7 +160,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </div>
           <div class="my-1">
             <span class="text-2xl font-bold text-text-main tracking-tight">
-              -${totalOutflow().toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              -{symbol()}{totalOutflow().toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div class="text-xs text-text-muted mt-2">Tracked across all accounts</div>
@@ -178,7 +180,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                 netCashFlow() >= 0 ? "text-[#5842e3]" : "text-rose-600"
               }`}
             >
-              {netCashFlow() >= 0 ? "+" : "-"}$
+              {netCashFlow() >= 0 ? "+" : "-"}{symbol()}
               {Math.abs(netCashFlow()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -406,7 +408,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                           isIncome ? "text-emerald-600" : "text-text-main"
                         }`}
                       >
-                        {isIncome ? "+" : "-"}$
+                        {isIncome ? "+" : "-"}{symbol()}
                         {Math.abs(tx.amount).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,

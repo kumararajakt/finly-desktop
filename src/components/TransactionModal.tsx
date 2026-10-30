@@ -4,6 +4,7 @@ import { Account, Transaction } from "../types/finance";
 
 interface TransactionModalProps {
   accounts: Account[];
+  currencySymbol?: string;
   onClose: () => void;
   onSave: (tx: Omit<Transaction, "id">) => void;
 }
@@ -95,7 +96,7 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
           {/* Amount input */}
           <div>
             <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-              Amount ($)
+              Amount ({props.currencySymbol || "$"})
             </label>
             <input
               type="number"

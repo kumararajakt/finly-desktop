@@ -1,8 +1,38 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Account, Transaction } from "../types/finance";
+import { Account, Transaction, UserProfile } from "../types/finance";
 
 // Detect if we are running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+export async function getUserProfile(): Promise<UserProfile | null> {
+  if (isTauri()) {
+    try {
+      const json = await invoke<string | null>("get_setting", { key: "user_profile" });
+      if (json) return JSON.parse(json);
+    } catch (err) {
+      console.error("Failed to load user profile from SQLite:", err);
+    }
+  }
+
+  const local = localStorage.getItem("finly_user_profile");
+  return local ? JSON.parse(local) : null;
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  if (isTauri()) {
+    try {
+      await invoke("set_setting", {
+        key: "user_profile",
+        value: JSON.stringify(profile),
+      });
+      return;
+    } catch (err) {
+      console.error("Failed to save user profile to SQLite:", err);
+    }
+  }
+
+  localStorage.setItem("finly_user_profile", JSON.stringify(profile));
+}
 
 export async function fetchTransactions(): Promise<Transaction[]> {
   if (isTauri()) {

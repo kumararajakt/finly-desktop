@@ -19,11 +19,15 @@ interface SidebarProps {
   accounts: Account[];
   transactions: Transaction[];
   activeFilter: string;
+  userName?: string;
+  currencySymbol?: string;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
 }
 
 export const Sidebar: Component<SidebarProps> = (props) => {
+  const symbol = () => props.currencySymbol || "$";
+
   const totalNetWorth = () =>
     props.accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
@@ -41,10 +45,12 @@ export const Sidebar: Component<SidebarProps> = (props) => {
         <div class="flex items-center justify-between px-2 pt-1">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm font-bold text-sm tracking-wide">
-              F
+              {props.userName ? props.userName.charAt(0).toUpperCase() : "F"}
             </div>
             <div>
-              <div class="font-bold text-sm text-text-main tracking-tight leading-tight">Finly</div>
+              <div class="font-bold text-sm text-text-main tracking-tight leading-tight">
+                {props.userName ? `${props.userName}'s Finly` : "Finly"}
+              </div>
               <div class="text-[10px] text-text-muted font-medium">Personal Finance</div>
             </div>
           </div>
@@ -198,7 +204,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
                     isNegative ? "text-slate-900" : "text-text-main"
                   }`}
                 >
-                  {isNegative ? "-" : ""}${Math.abs(acc.balance).toLocaleString("en-US", {
+                  {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -214,7 +220,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
         <div class="flex items-center justify-between px-2 py-1">
           <div class="text-[11px] text-text-muted font-medium">Net Worth</div>
           <div class="text-xs font-bold text-text-main">
-            ${totalNetWorth().toLocaleString("en-US", {
+            {symbol()}{totalNetWorth().toLocaleString("en-US", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
