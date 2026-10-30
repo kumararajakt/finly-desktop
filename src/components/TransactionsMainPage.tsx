@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Clock,
   Trash2,
+  Pencil,
   Flag,
   Upload,
   Receipt,
@@ -20,6 +21,7 @@ interface TransactionsMainPageProps {
   currencySymbol?: string;
   onFilterChange: (filter: string) => void;
   onOpenAddTransaction: () => void;
+  onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleFlagTransaction: (id: string) => void;
   onImportCSV?: (transactions: Omit<Transaction, "id">[]) => void;
@@ -361,6 +363,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                   return (
                     <tr
                       onClick={() => setSelectedTxId(tx.id)}
+                      onDblClick={() => props.onEditTransaction(tx)}
                       class={`transition-colors cursor-pointer relative ${
                         isSelected()
                           ? "bg-primary-light font-medium"
@@ -432,6 +435,14 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td class="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div class="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => props.onEditTransaction(tx)}
+                            class="p-1.5 rounded-lg text-text-subtle hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                            title="Edit Transaction"
+                          >
+                            <Pencil class="w-3.5 h-3.5" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => props.onToggleFlagTransaction(tx.id)}

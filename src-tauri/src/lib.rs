@@ -23,6 +23,14 @@ fn add_transaction(
 }
 
 #[tauri::command]
+fn update_transaction(
+    state: tauri::State<'_, DbState>,
+    transaction: Transaction,
+) -> Result<Transaction, String> {
+    state.update_transaction(transaction).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn delete_transaction(state: tauri::State<'_, DbState>, id: String) -> Result<bool, String> {
     state.delete_transaction(&id).map_err(|e| e.to_string())
 }
@@ -81,6 +89,7 @@ pub fn run() {
             greet,
             get_transactions,
             add_transaction,
+            update_transaction,
             delete_transaction,
             toggle_flag_transaction,
             import_transactions,

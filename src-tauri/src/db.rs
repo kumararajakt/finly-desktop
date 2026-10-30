@@ -215,6 +215,69 @@ impl DbState {
         })
     }
 
+    pub fn update_transaction(&self, tx_data: Transaction) -> Result<Transaction, rusqlite::Error> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+
+        // Retrieve old transaction to adjust account balance difference
+        let old: Option<(String, f64)> = tx
+            .query_row(
+                "SELECT account, amount FROM transactions WHERE id = ?1",
+                params![tx_data.id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .ok();
+
+        if let Some((old_account, old_amount)) = old {
+            // Revert old transaction effect on old account
+            tx.execute(
+                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                params![old_amount, old_account],
+            )?;
+        }
+
+        // Apply new transaction effect on new account
+        let updated_rows = tx.execute(
+            "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+            params![tx_data.amount, tx_data.account],
+        )?;
+
+        if updated_rows == 0 {
+            let acc_id = Uuid::new_v4().to_string();
+            let acc_type = if tx_data.account.to_lowercase().contains("credit") {
+                "credit"
+            } else {
+                "checking"
+            };
+            tx.execute(
+                "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
+                params![acc_id, tx_data.account, acc_type, tx_data.amount],
+            )?;
+        }
+
+        tx.execute(
+            "UPDATE transactions
+             SET date = ?2, payee = ?3, category = ?4, category_color = ?5, account = ?6, amount = ?7, tx_type = ?8, status = ?9, notes = ?10
+             WHERE id = ?1",
+            params![
+                tx_data.id,
+                tx_data.date,
+                tx_data.payee,
+                tx_data.category,
+                tx_data.category_color,
+                tx_data.account,
+                tx_data.amount,
+                tx_data.tx_type,
+                tx_data.status,
+                tx_data.notes
+            ],
+        )?;
+
+        tx.commit()?;
+
+        Ok(tx_data)
+    }
+
     pub fn delete_transaction(&self, id: &str) -> Result<bool, rusqlite::Error> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;

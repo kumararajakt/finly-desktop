@@ -69,6 +69,24 @@ export async function insertTransaction(
   return created;
 }
 
+export async function updateExistingTransaction(
+  tx: Transaction
+): Promise<Transaction> {
+  if (isTauri()) {
+    try {
+      return await invoke<Transaction>("update_transaction", { transaction: tx });
+    } catch (err) {
+      console.error("Failed to update transaction in SQLite:", err);
+    }
+  }
+
+  // Browser fallback
+  const current = await fetchTransactions();
+  const updated = current.map((t) => (t.id === tx.id ? tx : t));
+  localStorage.setItem("finly_transactions", JSON.stringify(updated));
+  return tx;
+}
+
 export async function removeTransaction(id: string): Promise<boolean> {
   if (isTauri()) {
     try {

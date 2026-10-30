@@ -14,6 +14,7 @@ import {
   fetchAccounts,
   fetchTransactions,
   insertTransaction,
+  updateExistingTransaction,
   removeTransaction,
   toggleTransactionFlag,
   batchImportTransactions,
@@ -27,6 +28,7 @@ import "./App.css";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = createSignal(false);
+  const [editingTransaction, setEditingTransaction] = createSignal<Transaction | null>(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = createSignal(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = createSignal(false);
   const [editingBudget, setEditingBudget] = createSignal<BudgetItem | null>(null);
@@ -93,16 +95,21 @@ function App() {
     }
   };
 
-  const handleAddTransaction = async (newTx: Omit<Transaction, "id">) => {
+  const handleSaveTransaction = async (txData: Omit<Transaction, "id">, id?: string) => {
     try {
-      const created = await insertTransaction(newTx);
-      setTransactions([created, ...transactions()]);
+      if (id) {
+        const updated = await updateExistingTransaction({ ...txData, id });
+        setTransactions(transactions().map((t) => (t.id === id ? updated : t)));
+      } else {
+        const created = await insertTransaction(txData);
+        setTransactions([created, ...transactions()]);
+      }
 
       // Refresh accounts with updated balances from SQLite
       const updatedAccounts = await fetchAccounts();
       setAccounts(updatedAccounts);
     } catch (err) {
-      console.error("Failed to insert transaction:", err);
+      console.error("Failed to save transaction:", err);
     }
   };
 
@@ -192,7 +199,10 @@ function App() {
           setActiveFilter(filter);
           setCurrentView("transactions");
         }}
-        onOpenAddTransaction={() => setIsModalOpen(true)}
+        onOpenAddTransaction={() => {
+          setEditingTransaction(null);
+          setIsModalOpen(true);
+        }}
         onOpenAddAccount={() => setIsAccountModalOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
@@ -208,7 +218,10 @@ function App() {
             if (filter) setActiveFilter(filter);
             setCurrentView("transactions");
           }}
-          onOpenAddTransaction={() => setIsModalOpen(true)}
+          onOpenAddTransaction={() => {
+          setEditingTransaction(null);
+          setIsModalOpen(true);
+        }}
           onOpenAddAccount={() => setIsAccountModalOpen(true)}
         />
       ) : currentView() === "budgets" ? (
@@ -235,7 +248,14 @@ function App() {
           activeFilter={activeFilter()}
           currencySymbol={userProfile()?.currencySymbol}
           onFilterChange={(filter) => setActiveFilter(filter)}
-          onOpenAddTransaction={() => setIsModalOpen(true)}
+          onOpenAddTransaction={() => {
+            setEditingTransaction(null);
+            setIsModalOpen(true);
+          }}
+          onEditTransaction={(tx) => {
+            setEditingTransaction(tx);
+            setIsModalOpen(true);
+          }}
           onDeleteTransaction={handleDeleteTransaction}
           onToggleFlagTransaction={handleToggleFlag}
           onImportCSV={handleImportCSV}
@@ -245,10 +265,14 @@ function App() {
       {/* Transaction Modal */}
       {isModalOpen() && (
         <TransactionModal
+          transaction={editingTransaction()}
           accounts={accounts()}
           currencySymbol={userProfile()?.currencySymbol}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleAddTransaction}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingTransaction(null);
+          }}
+          onSave={handleSaveTransaction}
         />
       )}
 
