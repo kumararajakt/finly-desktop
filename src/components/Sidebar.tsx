@@ -24,6 +24,7 @@ interface SidebarProps {
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const Sidebar: Component<SidebarProps> = (props) => {
@@ -242,6 +243,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
           </div>
           <button
             type="button"
+            onClick={props.onOpenSettings}
             class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             title="Settings"
           >

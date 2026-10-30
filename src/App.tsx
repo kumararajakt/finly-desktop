@@ -4,6 +4,7 @@ import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
 import { AccountModal } from "./components/AccountModal";
 import { OnboardingModal } from "./components/OnboardingModal";
+import { SettingsModal } from "./components/SettingsModal";
 import { Account, Transaction, UserProfile } from "./types/finance";
 import {
   fetchAccounts,
@@ -21,6 +22,7 @@ import "./App.css";
 function App() {
   const [isModalOpen, setIsModalOpen] = createSignal(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = createSignal(false);
+  const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
@@ -141,6 +143,7 @@ function App() {
         onSelectFilter={(filter) => setActiveFilter(filter)}
         onOpenAddTransaction={() => setIsModalOpen(true)}
         onOpenAddAccount={() => setIsAccountModalOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Main Page Area */}
@@ -171,6 +174,15 @@ function App() {
           currencySymbol={userProfile()?.currencySymbol}
           onClose={() => setIsAccountModalOpen(false)}
           onSave={handleCreateAccount}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {isSettingsOpen() && (
+        <SettingsModal
+          currentProfile={userProfile()}
+          onClose={() => setIsSettingsOpen(false)}
+          onSave={handleCompleteOnboarding}
         />
       )}
 
