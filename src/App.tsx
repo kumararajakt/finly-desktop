@@ -10,134 +10,13 @@ function App() {
   const [activeFilter, setActiveFilter] = createSignal("all");
 
   const [accounts, setAccounts] = createSignal<Account[]>([
-    { id: "1", name: "Chase Checking", type: "checking", balance: 4820.50 },
-    { id: "2", name: "High-Yield Savings", type: "savings", balance: 24150.00 },
-    { id: "3", name: "Amex Gold Card", type: "credit", balance: -850.20 },
-    { id: "4", name: "Mortgage Loan", type: "loan", balance: -318537.81 },
+    { id: "1", name: "Chase Checking", type: "checking", balance: 0.00 },
+    { id: "2", name: "High-Yield Savings", type: "savings", balance: 0.00 },
+    { id: "3", name: "Credit Card", type: "credit", balance: 0.00 },
   ]);
 
-  const [transactions, setTransactions] = createSignal<Transaction[]>([
-    {
-      id: "tx-1",
-      date: "2025-08-01",
-      payee: "Mortgage Servicing Inc",
-      category: "Housing",
-      categoryColor: "#2563eb",
-      account: "Chase Checking",
-      amount: -2583.12,
-      type: "expense",
-      status: "cleared",
-      notes: "Principal ($295.61) + Interest + PMI + Escrow",
-    },
-    {
-      id: "tx-2",
-      date: "2025-08-01",
-      payee: "TechCorp Global (Payroll)",
-      category: "Salary",
-      categoryColor: "#10b981",
-      account: "Chase Checking",
-      amount: 4500.00,
-      type: "income",
-      status: "cleared",
-      notes: "Bi-weekly direct deposit",
-    },
-    {
-      id: "tx-3",
-      date: "2025-08-02",
-      payee: "Whole Foods Market",
-      category: "Groceries",
-      categoryColor: "#10b981",
-      account: "Amex Gold Card",
-      amount: -142.30,
-      type: "expense",
-      status: "cleared",
-      notes: "Weekly organic groceries",
-    },
-    {
-      id: "tx-4",
-      date: "2025-08-03",
-      payee: "Osteria Italian Restaurant",
-      category: "Dining Out",
-      categoryColor: "#f59e0b",
-      account: "Amex Gold Card",
-      amount: -92.50,
-      type: "expense",
-      status: "pending",
-      notes: "Dinner with friends",
-    },
-    {
-      id: "tx-5",
-      date: "2025-08-04",
-      payee: "Electric & Power Co",
-      category: "Utilities",
-      categoryColor: "#06b6d4",
-      account: "Chase Checking",
-      amount: -118.40,
-      type: "expense",
-      status: "cleared",
-      notes: "July electric bill",
-    },
-    {
-      id: "tx-6",
-      date: "2025-08-04",
-      payee: "Freelance Client Payment",
-      category: "Salary",
-      categoryColor: "#10b981",
-      account: "Chase Checking",
-      amount: 920.00,
-      type: "income",
-      status: "cleared",
-      notes: "UI Design milestone #2",
-    },
-    {
-      id: "tx-7",
-      date: "2025-08-05",
-      payee: "Target Superstore",
-      category: "Groceries",
-      categoryColor: "#10b981",
-      account: "Amex Gold Card",
-      amount: -65.20,
-      type: "expense",
-      status: "cleared",
-      notes: "Household goods",
-    },
-    {
-      id: "tx-8",
-      date: "2025-08-06",
-      payee: "Spotify / Netflix",
-      category: "Entertainment",
-      categoryColor: "#ec4899",
-      account: "Amex Gold Card",
-      amount: -28.98,
-      type: "expense",
-      status: "cleared",
-      notes: "Monthly subscriptions",
-    },
-    {
-      id: "tx-9",
-      date: "2025-08-07",
-      payee: "Unknown Wire Transfer",
-      category: "Other",
-      categoryColor: "#64748b",
-      account: "Chase Checking",
-      amount: -250.00,
-      type: "expense",
-      status: "flagged",
-      notes: "Discrepancy: check bank statement vs schedule",
-    },
-    {
-      id: "tx-10",
-      date: "2025-08-08",
-      payee: "Trader Joe's",
-      category: "Groceries",
-      categoryColor: "#10b981",
-      account: "Amex Gold Card",
-      amount: -74.15,
-      type: "expense",
-      status: "pending",
-      notes: "Pending settlement",
-    },
-  ]);
+  // Clean empty transaction state (no dummy data)
+  const [transactions, setTransactions] = createSignal<Transaction[]>([]);
 
   const handleAddTransaction = (newTx: Omit<Transaction, "id">) => {
     const created: Transaction = {
@@ -145,9 +24,29 @@ function App() {
       id: `tx-${Date.now()}`,
     };
     setTransactions([created, ...transactions()]);
+
+    // Update account balance automatically
+    setAccounts(
+      accounts().map((acc) =>
+        acc.name === newTx.account
+          ? { ...acc, balance: acc.balance + newTx.amount }
+          : acc
+      )
+    );
   };
 
   const handleDeleteTransaction = (id: string) => {
+    const tx = transactions().find((t) => t.id === id);
+    if (tx) {
+      // Revert account balance
+      setAccounts(
+        accounts().map((acc) =>
+          acc.name === tx.account
+            ? { ...acc, balance: acc.balance - tx.amount }
+            : acc
+        )
+      );
+    }
     setTransactions(transactions().filter((t) => t.id !== id));
   };
 
@@ -161,11 +60,37 @@ function App() {
     );
   };
 
+  const handleImportCSV = (imported: Omit<Transaction, "id">[]) => {
+    const withIds: Transaction[] = imported.map((tx, idx) => ({
+      ...tx,
+      id: `tx-imp-${Date.now()}-${idx}`,
+    }));
+    setTransactions([...withIds, ...transactions()]);
+
+    // Discover any new accounts in the CSV and update/create them
+    const currentAccounts = [...accounts()];
+    imported.forEach((tx) => {
+      const existing = currentAccounts.find((a) => a.name.toLowerCase() === tx.account.toLowerCase());
+      if (existing) {
+        existing.balance += tx.amount;
+      } else {
+        currentAccounts.push({
+          id: `acc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: tx.account,
+          type: tx.account.toLowerCase().includes("credit") ? "credit" : "checking",
+          balance: tx.amount,
+        });
+      }
+    });
+    setAccounts(currentAccounts);
+  };
+
   return (
     <div class="flex h-screen w-screen overflow-hidden bg-canvas font-sans text-text-main">
       {/* Sidebar with Transactions Navigation & Accounts */}
       <Sidebar
         accounts={accounts()}
+        transactions={transactions()}
         activeFilter={activeFilter()}
         onSelectFilter={(filter) => setActiveFilter(filter)}
         onOpenAddTransaction={() => setIsModalOpen(true)}
@@ -179,6 +104,7 @@ function App() {
         onOpenAddTransaction={() => setIsModalOpen(true)}
         onDeleteTransaction={handleDeleteTransaction}
         onToggleFlagTransaction={handleToggleFlag}
+        onImportCSV={handleImportCSV}
       />
 
       {/* Transaction Modal */}

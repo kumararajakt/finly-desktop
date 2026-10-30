@@ -14,10 +14,11 @@ import {
   Clock,
   Flag,
 } from "lucide-solid";
-import { Account } from "../types/finance";
+import { Account, Transaction } from "../types/finance";
 
 interface SidebarProps {
   accounts: Account[];
+  transactions: Transaction[];
   activeFilter: string;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
@@ -26,6 +27,12 @@ interface SidebarProps {
 export const Sidebar: Component<SidebarProps> = (props) => {
   const totalNetWorth = () =>
     props.accounts.reduce((sum, acc) => sum + acc.balance, 0);
+
+  const pendingCount = () =>
+    props.transactions.filter((t) => t.status === "pending").length;
+
+  const flaggedCount = () =>
+    props.transactions.filter((t) => t.status === "flagged").length;
 
   return (
     <aside class="w-64 bg-white border-r border-card-border h-screen flex flex-col justify-between shrink-0 select-none">
@@ -100,7 +107,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
               <Receipt class={`w-4 h-4 ${props.activeFilter === "all" ? "text-primary" : "text-slate-400"}`} />
               <span>All Transactions</span>
             </div>
-            <span class="text-[11px] font-bold text-slate-400">12</span>
+            <span class="text-[11px] font-bold text-slate-400">{props.transactions.length}</span>
           </button>
 
           <button
@@ -116,9 +123,11 @@ export const Sidebar: Component<SidebarProps> = (props) => {
               <Clock class={`w-4 h-4 ${props.activeFilter === "pending" ? "text-primary" : "text-slate-400"}`} />
               <span>Pending</span>
             </div>
-            <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
-              2
-            </span>
+            {pendingCount() > 0 && (
+              <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                {pendingCount()}
+              </span>
+            )}
           </button>
 
           <button
@@ -149,9 +158,11 @@ export const Sidebar: Component<SidebarProps> = (props) => {
               <Flag class={`w-4 h-4 ${props.activeFilter === "flagged" ? "text-primary" : "text-slate-400"}`} />
               <span>Flagged for Review</span>
             </div>
-            <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
-              1
-            </span>
+            {flaggedCount() > 0 && (
+              <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                {flaggedCount()}
+              </span>
+            )}
           </button>
         </div>
 
