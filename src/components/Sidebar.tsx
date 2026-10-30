@@ -19,10 +19,10 @@ interface SidebarProps {
   accounts: Account[];
   transactions: Transaction[];
   activeFilter: string;
-  activeView: "dashboard" | "transactions";
+  activeView: "dashboard" | "transactions" | "budgets";
   userName?: string;
   currencySymbol?: string;
-  onSelectView: (view: "dashboard" | "transactions") => void;
+  onSelectView: (view: "dashboard" | "transactions" | "budgets") => void;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
@@ -95,9 +95,14 @@ export const Sidebar: Component<SidebarProps> = (props) => {
 
           <button
             type="button"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-card-subtle transition-colors cursor-pointer"
+            onClick={() => props.onSelectView("budgets")}
+            class={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              props.activeView === "budgets"
+                ? "bg-primary-light text-primary font-semibold"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
+            }`}
           >
-            <PieChart class="w-4 h-4 text-text-subtle" />
+            <PieChart class={`w-4 h-4 ${props.activeView === "budgets" ? "text-primary" : "text-text-subtle"}`} />
             <span>Budgets</span>
           </button>
         </div>

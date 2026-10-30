@@ -31,3 +31,11 @@ export interface UserProfile {
 }
 
 export type ThemeMode = "light" | "dark" | "auto";
+
+export interface BudgetItem {
+  id: string;
+  category: string;
+  limit: number;
+  period?: "monthly" | "yearly";
+  color?: string;
+}

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Account, Transaction, UserProfile } from "../types/finance";
+import { Account, Transaction, UserProfile, BudgetItem } from "../types/finance";
 
 // Detect if we are running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -163,4 +163,42 @@ export async function insertAccount(
   const current = await fetchAccounts();
   localStorage.setItem("finly_accounts", JSON.stringify([...current, created]));
   return created;
+}
+
+export async function fetchBudgets(): Promise<BudgetItem[]> {
+  if (isTauri()) {
+    try {
+      const json = await invoke<string | null>("get_setting", { key: "user_budgets" });
+      if (json) return JSON.parse(json);
+    } catch (err) {
+      console.error("Failed to load budgets from SQLite:", err);
+    }
+  }
+
+  const local = localStorage.getItem("finly_budgets");
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch {
+      // fallback
+    }
+  }
+
+  return [];
+}
+
+export async function saveBudgets(budgets: BudgetItem[]): Promise<void> {
+  if (isTauri()) {
+    try {
+      await invoke("set_setting", {
+        key: "user_budgets",
+        value: JSON.stringify(budgets),
+      });
+      return;
+    } catch (err) {
+      console.error("Failed to save budgets to SQLite:", err);
+    }
+  }
+
+  localStorage.setItem("finly_budgets", JSON.stringify(budgets));
 }
