@@ -5,7 +5,8 @@ import { TransactionModal } from "./components/TransactionModal";
 import { AccountModal } from "./components/AccountModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { Account, Transaction, UserProfile } from "./types/finance";
+import { Account, Transaction, UserProfile, ThemeMode } from "./types/finance";
+import { applyTheme, getStoredTheme, setStoredTheme } from "./utils/theme";
 import {
   fetchAccounts,
   fetchTransactions,
@@ -28,16 +29,21 @@ function App() {
   const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
   const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
+  const [currentTheme, setCurrentTheme] = createSignal<ThemeMode>("auto");
   const [loading, setLoading] = createSignal(true);
 
-  // Load persisted SQLite data and user profile on launch
+  // Load persisted SQLite data, theme, and user profile on launch
   onMount(async () => {
     try {
-      const [loadedProfile, loadedAccounts, loadedTransactions] = await Promise.all([
+      const [loadedProfile, loadedAccounts, loadedTransactions, loadedTheme] = await Promise.all([
         getUserProfile(),
         fetchAccounts(),
         fetchTransactions(),
+        getStoredTheme(),
       ]);
+
+      setCurrentTheme(loadedTheme);
+      applyTheme(loadedTheme);
 
       if (loadedProfile) {
         setUserProfile(loadedProfile);
@@ -63,6 +69,19 @@ function App() {
       setShowOnboarding(false);
     } catch (err) {
       console.error("Failed to save user profile:", err);
+    }
+  };
+
+  const handleSaveSettings = async (profile: UserProfile, theme: ThemeMode) => {
+    try {
+      await Promise.all([
+        saveUserProfile(profile),
+        setStoredTheme(theme),
+      ]);
+      setUserProfile(profile);
+      setCurrentTheme(theme);
+    } catch (err) {
+      console.error("Failed to save settings:", err);
     }
   };
 
@@ -181,8 +200,9 @@ function App() {
       {isSettingsOpen() && (
         <SettingsModal
           currentProfile={userProfile()}
+          currentTheme={currentTheme()}
           onClose={() => setIsSettingsOpen(false)}
-          onSave={handleCompleteOnboarding}
+          onSave={handleSaveSettings}
         />
       )}
 

@@ -26,14 +26,14 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
   };
 
   return (
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 select-none">
-      <div class="bg-white rounded-2xl border border-card-border shadow-xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 select-none">
+      <div class="bg-card rounded-2xl border border-card-border shadow-xl max-w-sm w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between border-b border-card-border pb-3">
           <h2 class="text-base font-bold text-text-main">Add Account</h2>
           <button
             type="button"
             onClick={props.onClose}
-            class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            class="p-1 rounded-lg text-text-subtle hover:text-text-main hover:bg-card-subtle cursor-pointer transition-colors"
           >
             <X class="w-4 h-4" />
           </button>
@@ -50,7 +50,7 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
               placeholder="e.g. HDFC Checking, ICICI Bank"
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
-              class="w-full bg-white border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+              class="w-full bg-card border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
             />
           </div>
 
@@ -61,12 +61,12 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
             <select
               value={type()}
               onChange={(e) => setType(e.currentTarget.value as any)}
-              class="w-full bg-white border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer"
+              class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
             >
-              <option value="checking">Checking / Bank Account</option>
-              <option value="savings">Savings Account</option>
-              <option value="credit">Credit Card</option>
-              <option value="loan">Loan / Mortgage</option>
+              <option value="checking" class="bg-card text-text-main">Checking / Bank Account</option>
+              <option value="savings" class="bg-card text-text-main">Savings Account</option>
+              <option value="credit" class="bg-card text-text-main">Credit Card</option>
+              <option value="loan" class="bg-card text-text-main">Loan / Mortgage</option>
             </select>
           </div>
 
@@ -80,15 +80,15 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
               placeholder="0.00"
               value={balance()}
               onInput={(e) => setBalance(e.currentTarget.value)}
-              class="w-full bg-white border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+              class="w-full bg-card border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
             />
           </div>
 
-          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-card-border">
             <button
               type="button"
               onClick={props.onClose}
-              class="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-main hover:bg-slate-100 transition cursor-pointer"
+              class="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text-main hover:bg-card-subtle transition cursor-pointer"
             >
               Cancel
             </button>

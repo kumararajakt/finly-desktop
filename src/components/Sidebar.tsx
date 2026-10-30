@@ -40,7 +40,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
     props.transactions.filter((t) => t.status === "flagged").length;
 
   return (
-    <aside class="w-64 bg-white border-r border-card-border h-screen flex flex-col justify-between shrink-0 select-none">
+    <aside class="w-64 bg-card border-r border-card-border h-screen flex flex-col justify-between shrink-0 select-none">
       {/* Top Branding & Main Navigation */}
       <div class="p-4 space-y-6 overflow-y-auto">
         {/* Brand */}
@@ -56,7 +56,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
               <div class="text-[10px] text-text-muted font-medium">Personal Finance</div>
             </div>
           </div>
-          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Sync
           </span>
@@ -80,17 +80,17 @@ export const Sidebar: Component<SidebarProps> = (props) => {
 
           <button
             type="button"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-slate-50 transition-colors cursor-pointer"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-card-subtle transition-colors cursor-pointer"
           >
-            <LayoutDashboard class="w-4 h-4 text-slate-400" />
+            <LayoutDashboard class="w-4 h-4 text-text-subtle" />
             <span>Dashboard</span>
           </button>
 
           <button
             type="button"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-slate-50 transition-colors cursor-pointer"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-card-subtle transition-colors cursor-pointer"
           >
-            <PieChart class="w-4 h-4 text-slate-400" />
+            <PieChart class="w-4 h-4 text-text-subtle" />
             <span>Budgets</span>
           </button>
         </div>
@@ -107,14 +107,14 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               props.activeFilter === "all"
                 ? "bg-primary-light text-primary font-semibold"
-                : "text-text-muted hover:text-text-main hover:bg-slate-50"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Receipt class={`w-4 h-4 ${props.activeFilter === "all" ? "text-primary" : "text-slate-400"}`} />
+              <Receipt class={`w-4 h-4 ${props.activeFilter === "all" ? "text-primary" : "text-text-subtle"}`} />
               <span>All Transactions</span>
             </div>
-            <span class="text-[11px] font-bold text-slate-400">{props.transactions.length}</span>
+            <span class="text-[11px] font-bold text-text-subtle">{props.transactions.length}</span>
           </button>
 
           <button
@@ -123,15 +123,15 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               props.activeFilter === "pending"
                 ? "bg-primary-light text-primary font-semibold"
-                : "text-text-muted hover:text-text-main hover:bg-slate-50"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Clock class={`w-4 h-4 ${props.activeFilter === "pending" ? "text-primary" : "text-slate-400"}`} />
+              <Clock class={`w-4 h-4 ${props.activeFilter === "pending" ? "text-primary" : "text-text-subtle"}`} />
               <span>Pending</span>
             </div>
             {pendingCount() > 0 && (
-              <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+              <span class="text-[10px] font-bold text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
                 {pendingCount()}
               </span>
             )}
@@ -143,11 +143,11 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               props.activeFilter === "cleared"
                 ? "bg-primary-light text-primary font-semibold"
-                : "text-text-muted hover:text-text-main hover:bg-slate-50"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <CheckCircle2 class={`w-4 h-4 ${props.activeFilter === "cleared" ? "text-primary" : "text-slate-400"}`} />
+              <CheckCircle2 class={`w-4 h-4 ${props.activeFilter === "cleared" ? "text-primary" : "text-text-subtle"}`} />
               <span>Cleared</span>
             </div>
           </button>
@@ -158,15 +158,15 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               props.activeFilter === "flagged"
                 ? "bg-primary-light text-primary font-semibold"
-                : "text-text-muted hover:text-text-main hover:bg-slate-50"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Flag class={`w-4 h-4 ${props.activeFilter === "flagged" ? "text-primary" : "text-slate-400"}`} />
+              <Flag class={`w-4 h-4 ${props.activeFilter === "flagged" ? "text-primary" : "text-text-subtle"}`} />
               <span>Flagged for Review</span>
             </div>
             {flaggedCount() > 0 && (
-              <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
+              <span class="text-[10px] font-bold text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
                 {flaggedCount()}
               </span>
             )}
@@ -189,27 +189,27 @@ export const Sidebar: Component<SidebarProps> = (props) => {
           </div>
 
           {props.accounts.length === 0 ? (
-            <div class="px-3 py-2.5 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
+            <div class="px-3 py-2.5 rounded-xl border border-dashed border-card-border text-center text-text-subtle text-xs">
               No accounts yet
             </div>
           ) : (
             props.accounts.map((acc) => {
               const isNegative = acc.balance < 0;
               return (
-                <div class="flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-slate-50 transition-colors">
+                <div class="flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-card-subtle transition-colors">
                   <div class="flex items-center gap-2.5 truncate">
                     {acc.type === "credit" ? (
-                      <CreditCard class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <CreditCard class="w-3.5 h-3.5 text-text-subtle shrink-0" />
                     ) : acc.type === "savings" ? (
-                      <Wallet class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <Wallet class="w-3.5 h-3.5 text-text-subtle shrink-0" />
                     ) : (
-                      <Building2 class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <Building2 class="w-3.5 h-3.5 text-text-subtle shrink-0" />
                     )}
                     <span class="text-text-main font-medium truncate">{acc.name}</span>
                   </div>
                   <span
                     class={`font-semibold shrink-0 ml-2 ${
-                      isNegative ? "text-slate-900" : "text-text-main"
+                      isNegative ? "text-rose-500" : "text-text-main"
                     }`}
                   >
                     {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
@@ -225,7 +225,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
       </div>
 
       {/* Bottom Profile / Sync status */}
-      <div class="p-3 border-t border-card-border bg-slate-50/50 space-y-2">
+      <div class="p-3 border-t border-card-border bg-card-subtle space-y-2">
         <div class="flex items-center justify-between px-2 py-1">
           <div class="text-[11px] text-text-muted font-medium">Net Worth</div>
           <div class="text-xs font-bold text-text-main">
@@ -238,13 +238,13 @@ export const Sidebar: Component<SidebarProps> = (props) => {
 
         <div class="flex items-center justify-between pt-1 px-1">
           <div class="flex items-center gap-2">
-            <ShieldCheck class="w-4 h-4 text-emerald-600" />
+            <ShieldCheck class="w-4 h-4 text-emerald-500" />
             <span class="text-[11px] text-text-muted">Local & Encrypted</span>
           </div>
           <button
             type="button"
             onClick={props.onOpenSettings}
-            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            class="p-1.5 rounded-lg text-text-subtle hover:text-text-main hover:bg-card transition-colors cursor-pointer"
             title="Settings"
           >
             <Settings class="w-4 h-4" />

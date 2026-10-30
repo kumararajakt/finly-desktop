@@ -22,3 +22,6 @@ export { default as User } from "lucide-solid/icons/user";
 export { default as Globe } from "lucide-solid/icons/globe";
 export { default as Coins } from "lucide-solid/icons/coins";
 export { default as Check } from "lucide-solid/icons/check";
+export { default as Sun } from "lucide-solid/icons/sun";
+export { default as Moon } from "lucide-solid/icons/moon";
+export { default as Monitor } from "lucide-solid/icons/monitor";

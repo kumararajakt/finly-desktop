@@ -91,11 +91,11 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
               placeholder="Search transactions..."
               value={searchQuery()}
               onInput={(e) => setSearchQuery(e.currentTarget.value)}
-              class="w-full bg-white border border-card-border rounded-xl pl-9 pr-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition shadow-xs"
+              class="w-full bg-card border border-card-border rounded-xl pl-9 pr-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition shadow-xs"
             />
           </div>
 
-          <label class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-card-border text-text-muted hover:text-text-main text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs cursor-pointer">
+          <label class="inline-flex items-center gap-1.5 bg-card hover:bg-card-subtle border border-card-border text-text-muted hover:text-text-main text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs cursor-pointer">
             <Upload class="w-3.5 h-3.5" />
             <span>Import CSV</span>
             <input
@@ -135,10 +135,10 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       {/* KPI Stat Cards (Matching theme from screenshot) */}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Income Card */}
-        <div class="bg-white rounded-2xl border border-card-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div class="bg-card rounded-2xl border border-card-border p-5 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
             <span>Inflow / Income</span>
-            <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+            <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
               <ArrowDownLeft class="w-4 h-4" />
             </span>
           </div>
@@ -151,10 +151,10 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
         </div>
 
         {/* Outflow Card */}
-        <div class="bg-white rounded-2xl border border-card-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div class="bg-card rounded-2xl border border-card-border p-5 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
             <span>Outflow / Expenses</span>
-            <span class="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+            <span class="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
               <ArrowUpRight class="w-4 h-4" />
             </span>
           </div>
@@ -167,17 +167,17 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
         </div>
 
         {/* Net Savings Card */}
-        <div class="bg-white rounded-2xl border border-card-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div class="bg-card rounded-2xl border border-card-border p-5 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
             <span>Net Cash Flow</span>
-            <span class="p-1.5 rounded-lg bg-indigo-50 text-[#5842e3]">
+            <span class="p-1.5 rounded-lg bg-primary-light text-primary">
               <TrendingUp class="w-4 h-4" />
             </span>
           </div>
           <div class="my-1">
             <span
               class={`text-2xl font-bold tracking-tight ${
-                netCashFlow() >= 0 ? "text-[#5842e3]" : "text-rose-600"
+                netCashFlow() >= 0 ? "text-primary" : "text-rose-500"
               }`}
             >
               {netCashFlow() >= 0 ? "+" : "-"}{symbol()}
@@ -192,10 +192,10 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
         </div>
 
         {/* Pending Card */}
-        <div class="bg-white rounded-2xl border border-card-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div class="bg-card rounded-2xl border border-card-border p-5 shadow-xs flex flex-col justify-between">
           <div class="flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
             <span>Pending Review</span>
-            <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+            <span class="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
               <Clock class="w-4 h-4" />
             </span>
           </div>
@@ -211,13 +211,13 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
       {/* Sub-filters & Pill Tabs */}
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="inline-flex rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 text-xs font-medium self-start">
+        <div class="inline-flex rounded-xl bg-card-subtle p-1 border border-card-border text-xs font-medium self-start">
           <button
             type="button"
             onClick={() => props.onFilterChange("all")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "all"
-                ? "bg-white text-text-main shadow-xs font-semibold"
+                ? "bg-card text-text-main shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-main"
             }`}
           >
@@ -228,7 +228,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
             onClick={() => props.onFilterChange("expense")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "expense"
-                ? "bg-white text-text-main shadow-xs font-semibold"
+                ? "bg-card text-text-main shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-main"
             }`}
           >
@@ -239,7 +239,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
             onClick={() => props.onFilterChange("income")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "income"
-                ? "bg-white text-text-main shadow-xs font-semibold"
+                ? "bg-card text-text-main shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-main"
             }`}
           >
@@ -250,7 +250,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
             onClick={() => props.onFilterChange("pending")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "pending"
-                ? "bg-white text-text-main shadow-xs font-semibold"
+                ? "bg-card text-text-main shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-main"
             }`}
           >
@@ -261,7 +261,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
             onClick={() => props.onFilterChange("flagged")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "flagged"
-                ? "bg-white text-text-main shadow-xs font-semibold"
+                ? "bg-card text-text-main shadow-xs font-semibold"
                 : "text-text-muted hover:text-text-main"
             }`}
           >
@@ -275,30 +275,30 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       </div>
 
       {/* Main Transactions Register Table */}
-      <div class="bg-white rounded-2xl border border-card-border shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col">
+      <div class="bg-card rounded-2xl border border-card-border shadow-xs overflow-hidden flex flex-col">
         <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)]">
           <table class="w-full text-left text-xs text-text-main border-collapse">
-            <thead class="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_#e5e7eb]">
-              <tr class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-slate-50">
-                <th class="py-3 px-4 w-10 text-center sticky top-0 bg-slate-50">#</th>
-                <th class="py-3 px-4 w-28 sticky top-0 bg-slate-50">Date</th>
-                <th class="py-3 px-4 sticky top-0 bg-slate-50">Payee / Description</th>
-                <th class="py-3 px-4 sticky top-0 bg-slate-50">Category</th>
-                <th class="py-3 px-4 sticky top-0 bg-slate-50">Account</th>
-                <th class="py-3 px-4 sticky top-0 bg-slate-50">Notes</th>
-                <th class="py-3 px-4 text-right sticky top-0 bg-slate-50">Amount</th>
-                <th class="py-3 px-4 text-center sticky top-0 bg-slate-50">Status</th>
-                <th class="py-3 px-4 text-right w-20 sticky top-0 bg-slate-50">Actions</th>
+            <thead class="sticky top-0 z-10 bg-card-subtle shadow-[0_1px_0_0_var(--color-card-border)]">
+              <tr class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-card-subtle">
+                <th class="py-3 px-4 w-10 text-center sticky top-0 bg-card-subtle">#</th>
+                <th class="py-3 px-4 w-28 sticky top-0 bg-card-subtle">Date</th>
+                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Payee / Description</th>
+                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Category</th>
+                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Account</th>
+                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Notes</th>
+                <th class="py-3 px-4 text-right sticky top-0 bg-card-subtle">Amount</th>
+                <th class="py-3 px-4 text-center sticky top-0 bg-card-subtle">Status</th>
+                <th class="py-3 px-4 text-right w-20 sticky top-0 bg-card-subtle">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-card-border">
               <For
                 each={filteredTransactions()}
                 fallback={
                   <tr>
                     <td colspan="9" class="py-16 text-center text-text-muted">
                       <div class="max-w-xs mx-auto space-y-3">
-                        <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                        <div class="w-12 h-12 rounded-2xl bg-card-subtle flex items-center justify-center text-text-subtle mx-auto">
                           <Receipt class="w-6 h-6" />
                         </div>
                         <div class="space-y-1">
@@ -323,7 +323,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                               <Plus class="w-4 h-4" />
                               <span>Add Transaction</span>
                             </button>
-                            <label class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-card-border text-text-muted hover:text-text-main text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow-xs cursor-pointer">
+                            <label class="inline-flex items-center gap-1.5 bg-card hover:bg-card-subtle border border-card-border text-text-muted hover:text-text-main text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow-xs cursor-pointer">
                               <Upload class="w-3.5 h-3.5" />
                               <span>Import CSV</span>
                               <input
@@ -364,8 +364,8 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                       onClick={() => setSelectedTxId(tx.id)}
                       class={`transition-colors cursor-pointer relative ${
                         isSelected()
-                          ? "bg-indigo-50/30 font-medium"
-                          : "hover:bg-slate-50/70"
+                          ? "bg-primary-light font-medium"
+                          : "hover:bg-card-subtle"
                       }`}
                     >
                       <td class="py-3.5 px-4 text-center text-text-subtle relative">
@@ -385,7 +385,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td class="py-3.5 px-4">
                         <span
-                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-800"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-card-subtle text-text-main border border-card-border"
                         >
                           <span
                             class="w-1.5 h-1.5 rounded-full"
@@ -405,7 +405,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td
                         class={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${
-                          isIncome ? "text-emerald-600" : "text-text-main"
+                          isIncome ? "text-emerald-500" : "text-text-main"
                         }`}
                       >
                         {isIncome ? "+" : "-"}{symbol()}
@@ -417,15 +417,15 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td class="py-3.5 px-4 text-center whitespace-nowrap">
                         {tx.status === "cleared" ? (
-                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-[#dcfce7] text-[#15803d]">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-badge-paid-bg text-badge-paid-text">
                             Cleared
                           </span>
                         ) : tx.status === "flagged" ? (
-                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-[#fef3c7] text-[#b45309]">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-badge-flag-bg text-badge-flag-text">
                             Flagged
                           </span>
                         ) : (
-                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-slate-100 text-slate-600">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-card-subtle text-text-muted border border-card-border">
                             Pending
                           </span>
                         )}
@@ -438,8 +438,8 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                             onClick={() => props.onToggleFlagTransaction(tx.id)}
                             class={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                               tx.status === "flagged"
-                                ? "text-amber-600 hover:bg-amber-50"
-                                : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                                ? "text-amber-500 hover:bg-amber-500/10"
+                                : "text-text-subtle hover:text-text-main hover:bg-card-subtle"
                             }`}
                             title="Toggle Flag"
                           >
@@ -448,7 +448,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                           <button
                             type="button"
                             onClick={() => props.onDeleteTransaction(tx.id)}
-                            class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            class="p-1.5 rounded-lg text-text-subtle hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                             title="Delete Transaction"
                           >
                             <Trash2 class="w-3.5 h-3.5" />

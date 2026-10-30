@@ -31,7 +31,7 @@ export const OnboardingModal: Component<OnboardingModalProps> = (props) => {
 
   return (
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 select-none">
-      <div class="bg-white rounded-2xl border border-card-border shadow-2xl max-w-lg w-full p-7 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+      <div class="bg-card rounded-2xl border border-card-border shadow-2xl max-w-lg w-full p-7 space-y-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div class="text-center space-y-2">
           <div class="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center mx-auto shadow-xs">
@@ -59,7 +59,7 @@ export const OnboardingModal: Component<OnboardingModalProps> = (props) => {
                 placeholder="e.g. John Doe"
                 value={name()}
                 onInput={(e) => setName(e.currentTarget.value)}
-                class="w-full bg-white border border-card-border rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                class="w-full bg-card border border-card-border rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
               />
             </div>
           </div>
@@ -77,11 +77,11 @@ export const OnboardingModal: Component<OnboardingModalProps> = (props) => {
                   setSelectedCountry(e.currentTarget.value);
                   setCustomSymbol(""); // reset custom override when country changes
                 }}
-                class="w-full bg-white border border-card-border rounded-xl pl-10 pr-4 py-2.5 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer"
+                class="w-full bg-card border border-card-border rounded-xl pl-10 pr-9 py-2.5 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
               >
                 <For each={COUNTRIES}>
                   {(c) => (
-                    <option value={c.country}>
+                    <option value={c.country} class="bg-card text-text-main">
                       {c.country} ({c.currencyCode} · {c.symbol})
                     </option>
                   )}
@@ -91,20 +91,20 @@ export const OnboardingModal: Component<OnboardingModalProps> = (props) => {
           </div>
 
           {/* Automatically Detected Currency Card */}
-          <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 space-y-2">
+          <div class="bg-primary-light border border-card-border rounded-2xl p-4 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-[#5842e3] flex items-center gap-1.5">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
                 <Check class="w-3.5 h-3.5" />
                 Detected Currency
               </span>
-              <span class="text-xs font-bold text-[#5842e3] bg-white px-2 py-0.5 rounded-md border border-indigo-100 shadow-2xs">
+              <span class="text-xs font-bold text-primary bg-card px-2 py-0.5 rounded-md border border-card-border shadow-xs">
                 {detectedCurrency().currencyCode} ({activeSymbol()})
               </span>
             </div>
 
-            <div class="text-xs text-slate-700 flex items-center justify-between pt-1">
+            <div class="text-xs text-text-muted flex items-center justify-between pt-1">
               <span>{detectedCurrency().currencyName}</span>
-              <span class="font-mono font-semibold text-slate-900">
+              <span class="font-mono font-semibold text-text-main">
                 Sample: {activeSymbol()}2,450.00
               </span>
             </div>

@@ -27,4 +27,7 @@ export interface UserProfile {
   country: string;
   currencyCode: string; // e.g. "INR", "USD"
   currencySymbol: string; // e.g. "₹", "$"
+  theme?: ThemeMode;
 }
+
+export type ThemeMode = "light" | "dark" | "auto";
