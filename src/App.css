@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Surfaces & Backgrounds */
+  --color-canvas: #f4f5f8;
+  --color-card: #ffffff;
+  --color-card-border: #e5e7eb;
+
+  /* Text colors */
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+
+  /* Primary Brand / Accent (Indigo / Violet) */
+  --color-primary: #5842e3;
+  --color-primary-hover: #4b36d6;
+  --color-primary-active: #402dbd;
+  --color-primary-light: #f3f0ff;
+
+  /* Financial / Category Breakdown Colors */
+  --color-principal: #2563eb;
+  --color-interest: #d95d39;
+  --color-pmi: #10b981;
+  --color-escrow: #f59e0b;
+
+  /* Badges & Status */
+  --color-badge-paid-bg: #dcfce7;
+  --color-badge-paid-text: #15803d;
+  --color-badge-flag-bg: #fef3c7;
+  --color-badge-flag-text: #b45309;
+}
+
+:root {
+  --font-family-base: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --bg-canvas: #f4f5f8;
+  --bg-card: #ffffff;
+  --border-subtle: #e5e7eb;
+
+  --color-primary: #5842e3;
+  --color-primary-hover: #4b36d6;
+  --color-primary-active: #402dbd;
+  --color-primary-light: #f3f0ff;
+
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+
+  --color-principal: #2563eb;
+  --color-interest: #d95d39;
+  --color-pmi: #10b981;
+  --color-escrow: #f59e0b;
+
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-pill: 9999px;
+
+  font-family: var(--font-family-base);
+  color: var(--color-text-main);
+  background-color: var(--bg-canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-canvas);
+  color: var(--color-text-main);
+  font-family: var(--font-family-base);
+}
+
+/* Custom desktop scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
