@@ -19,8 +19,10 @@ interface SidebarProps {
   accounts: Account[];
   transactions: Transaction[];
   activeFilter: string;
+  activeView: "dashboard" | "transactions";
   userName?: string;
   currencySymbol?: string;
+  onSelectView: (view: "dashboard" | "transactions") => void;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
@@ -80,9 +82,14 @@ export const Sidebar: Component<SidebarProps> = (props) => {
 
           <button
             type="button"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-text-main hover:bg-card-subtle transition-colors cursor-pointer"
+            onClick={() => props.onSelectView("dashboard")}
+            class={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              props.activeView === "dashboard"
+                ? "bg-primary-light text-primary font-semibold"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
+            }`}
           >
-            <LayoutDashboard class="w-4 h-4 text-text-subtle" />
+            <LayoutDashboard class={`w-4 h-4 ${props.activeView === "dashboard" ? "text-primary" : "text-text-subtle"}`} />
             <span>Dashboard</span>
           </button>
 
@@ -105,13 +112,13 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             type="button"
             onClick={() => props.onSelectFilter("all")}
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              props.activeFilter === "all"
+              props.activeView === "transactions" && props.activeFilter === "all"
                 ? "bg-primary-light text-primary font-semibold"
                 : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Receipt class={`w-4 h-4 ${props.activeFilter === "all" ? "text-primary" : "text-text-subtle"}`} />
+              <Receipt class={`w-4 h-4 ${props.activeView === "transactions" && props.activeFilter === "all" ? "text-primary" : "text-text-subtle"}`} />
               <span>All Transactions</span>
             </div>
             <span class="text-[11px] font-bold text-text-subtle">{props.transactions.length}</span>
@@ -121,13 +128,13 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             type="button"
             onClick={() => props.onSelectFilter("pending")}
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              props.activeFilter === "pending"
+              props.activeView === "transactions" && props.activeFilter === "pending"
                 ? "bg-primary-light text-primary font-semibold"
                 : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Clock class={`w-4 h-4 ${props.activeFilter === "pending" ? "text-primary" : "text-text-subtle"}`} />
+              <Clock class={`w-4 h-4 ${props.activeView === "transactions" && props.activeFilter === "pending" ? "text-primary" : "text-text-subtle"}`} />
               <span>Pending</span>
             </div>
             {pendingCount() > 0 && (
@@ -141,13 +148,13 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             type="button"
             onClick={() => props.onSelectFilter("cleared")}
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              props.activeFilter === "cleared"
+              props.activeView === "transactions" && props.activeFilter === "cleared"
                 ? "bg-primary-light text-primary font-semibold"
                 : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <CheckCircle2 class={`w-4 h-4 ${props.activeFilter === "cleared" ? "text-primary" : "text-text-subtle"}`} />
+              <CheckCircle2 class={`w-4 h-4 ${props.activeView === "transactions" && props.activeFilter === "cleared" ? "text-primary" : "text-text-subtle"}`} />
               <span>Cleared</span>
             </div>
           </button>
@@ -156,13 +163,13 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             type="button"
             onClick={() => props.onSelectFilter("flagged")}
             class={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-              props.activeFilter === "flagged"
+              props.activeView === "transactions" && props.activeFilter === "flagged"
                 ? "bg-primary-light text-primary font-semibold"
                 : "text-text-muted hover:text-text-main hover:bg-card-subtle"
             }`}
           >
             <div class="flex items-center gap-3">
-              <Flag class={`w-4 h-4 ${props.activeFilter === "flagged" ? "text-primary" : "text-text-subtle"}`} />
+              <Flag class={`w-4 h-4 ${props.activeView === "transactions" && props.activeFilter === "flagged" ? "text-primary" : "text-text-subtle"}`} />
               <span>Flagged for Review</span>
             </div>
             {flaggedCount() > 0 && (

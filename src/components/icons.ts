@@ -13,6 +13,7 @@ export { default as Flag } from "lucide-solid/icons/flag";
 export { default as Search } from "lucide-solid/icons/search";
 export { default as ArrowDownLeft } from "lucide-solid/icons/arrow-down-left";
 export { default as ArrowUpRight } from "lucide-solid/icons/arrow-up-right";
+export { default as ArrowRight } from "lucide-solid/icons/arrow-right";
 export { default as TrendingUp } from "lucide-solid/icons/trending-up";
 export { default as Filter } from "lucide-solid/icons/list-filter";
 export { default as Trash2 } from "lucide-solid/icons/trash";

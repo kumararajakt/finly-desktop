@@ -1,5 +1,6 @@
 import { createSignal, onMount } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
+import { DashboardPage } from "./components/DashboardPage";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
 import { AccountModal } from "./components/AccountModal";
@@ -26,6 +27,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
+  const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions">("dashboard");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
   const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
@@ -154,25 +156,45 @@ function App() {
         accounts={accounts()}
         transactions={transactions()}
         activeFilter={activeFilter()}
+        activeView={currentView()}
         userName={userProfile()?.name}
         currencySymbol={userProfile()?.currencySymbol}
-        onSelectFilter={(filter) => setActiveFilter(filter)}
+        onSelectView={(view) => setCurrentView(view)}
+        onSelectFilter={(filter) => {
+          setActiveFilter(filter);
+          setCurrentView("transactions");
+        }}
         onOpenAddTransaction={() => setIsModalOpen(true)}
         onOpenAddAccount={() => setIsAccountModalOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Main Page Area */}
-      <TransactionsMainPage
-        transactions={transactions()}
-        activeFilter={activeFilter()}
-        currencySymbol={userProfile()?.currencySymbol}
-        onFilterChange={(filter) => setActiveFilter(filter)}
-        onOpenAddTransaction={() => setIsModalOpen(true)}
-        onDeleteTransaction={handleDeleteTransaction}
-        onToggleFlagTransaction={handleToggleFlag}
-        onImportCSV={handleImportCSV}
-      />
+      {currentView() === "dashboard" ? (
+        <DashboardPage
+          accounts={accounts()}
+          transactions={transactions()}
+          userName={userProfile()?.name}
+          currencySymbol={userProfile()?.currencySymbol}
+          onNavigateToTransactions={(filter) => {
+            if (filter) setActiveFilter(filter);
+            setCurrentView("transactions");
+          }}
+          onOpenAddTransaction={() => setIsModalOpen(true)}
+          onOpenAddAccount={() => setIsAccountModalOpen(true)}
+        />
+      ) : (
+        <TransactionsMainPage
+          transactions={transactions()}
+          activeFilter={activeFilter()}
+          currencySymbol={userProfile()?.currencySymbol}
+          onFilterChange={(filter) => setActiveFilter(filter)}
+          onOpenAddTransaction={() => setIsModalOpen(true)}
+          onDeleteTransaction={handleDeleteTransaction}
+          onToggleFlagTransaction={handleToggleFlag}
+          onImportCSV={handleImportCSV}
+        />
+      )}
 
       {/* Transaction Modal */}
       {isModalOpen() && (
