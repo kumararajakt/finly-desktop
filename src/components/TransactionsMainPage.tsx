@@ -275,20 +275,20 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       </div>
 
       {/* Main Transactions Register Table */}
-      <div class="bg-white rounded-2xl border border-card-border shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-text-main">
-            <thead>
-              <tr class="border-b border-card-border text-[11px] font-bold text-text-muted uppercase tracking-wider bg-slate-50/60">
-                <th class="py-3 px-4 w-10 text-center">#</th>
-                <th class="py-3 px-4 w-28">Date</th>
-                <th class="py-3 px-4">Payee / Description</th>
-                <th class="py-3 px-4">Category</th>
-                <th class="py-3 px-4">Account</th>
-                <th class="py-3 px-4">Notes</th>
-                <th class="py-3 px-4 text-right">Amount</th>
-                <th class="py-3 px-4 text-center">Status</th>
-                <th class="py-3 px-4 text-right w-20">Actions</th>
+      <div class="bg-white rounded-2xl border border-card-border shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col">
+        <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)]">
+          <table class="w-full text-left text-xs text-text-main border-collapse">
+            <thead class="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_#e5e7eb]">
+              <tr class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-slate-50">
+                <th class="py-3 px-4 w-10 text-center sticky top-0 bg-slate-50">#</th>
+                <th class="py-3 px-4 w-28 sticky top-0 bg-slate-50">Date</th>
+                <th class="py-3 px-4 sticky top-0 bg-slate-50">Payee / Description</th>
+                <th class="py-3 px-4 sticky top-0 bg-slate-50">Category</th>
+                <th class="py-3 px-4 sticky top-0 bg-slate-50">Account</th>
+                <th class="py-3 px-4 sticky top-0 bg-slate-50">Notes</th>
+                <th class="py-3 px-4 text-right sticky top-0 bg-slate-50">Amount</th>
+                <th class="py-3 px-4 text-center sticky top-0 bg-slate-50">Status</th>
+                <th class="py-3 px-4 text-right w-20 sticky top-0 bg-slate-50">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
