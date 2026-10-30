@@ -9,11 +9,10 @@ import {
   Plus,
   ShieldCheck,
   Building2,
-  TrendingDown,
   CheckCircle2,
   Clock,
   Flag,
-} from "lucide-solid";
+} from "./icons";
 import { Account, Transaction } from "../types/finance";
 
 interface SidebarProps {

@@ -9,10 +9,9 @@ import {
   Filter,
   Trash2,
   Flag,
-  CheckCircle2,
   Upload,
   Receipt,
-} from "lucide-solid";
+} from "./icons";
 import { Transaction } from "../types/finance";
 import { parseTransactionsCSV } from "../utils/csv";
 

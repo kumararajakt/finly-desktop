@@ -1,5 +1,5 @@
 import { Component, createSignal } from "solid-js";
-import { X } from "lucide-solid";
+import { X } from "./icons";
 import { Account, Transaction } from "../types/finance";
 
 interface TransactionModalProps {
