@@ -39,3 +39,6 @@ export { default as Tag } from "lucide-solid/icons/tag";
 export { default as Tags } from "lucide-solid/icons/tags";
 export { default as HandCoins } from "lucide-solid/icons/hand-coins";
 export { default as Users } from "lucide-solid/icons/users";
+export { default as ArrowUpDown } from "lucide-solid/icons/arrow-up-down";
+export { default as ArrowUp } from "lucide-solid/icons/arrow-up";
+export { default as ArrowDown } from "lucide-solid/icons/arrow-down";

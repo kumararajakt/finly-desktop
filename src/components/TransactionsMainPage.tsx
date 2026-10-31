@@ -1,4 +1,4 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, createSignal, For, Show } from "solid-js";
 import {
   Search,
   Plus,
@@ -12,6 +12,9 @@ import {
   Flag,
   Upload,
   Receipt,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "./icons";
 import { Transaction, Account } from "../types/finance";
 import { ImportTransactionsModal } from "./ImportTransactionsModal";
@@ -34,6 +37,22 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
   const [importFile, setImportFile] = createSignal<{ fileName: string; text: string } | null>(null);
+
+  // Sorting state
+  type SortField = "date" | "payee" | "category" | "account" | "amount" | "status";
+  type SortDirection = "asc" | "desc";
+
+  const [sortField, setSortField] = createSignal<SortField>("date");
+  const [sortDirection, setSortDirection] = createSignal<SortDirection>("desc");
+
+  const handleSort = (field: SortField) => {
+    if (sortField() === field) {
+      setSortDirection(sortDirection() === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection(field === "amount" || field === "date" ? "desc" : "asc");
+    }
+  };
 
   const handleCSVFilePicked = (file: File) => {
     const reader = new FileReader();
@@ -85,6 +104,53 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       }
 
       return true;
+    });
+  };
+
+  // Sorted transactions
+  const sortedTransactions = () => {
+    const list = [...filteredTransactions()];
+    const field = sortField();
+    const dir = sortDirection() === "asc" ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case "date": {
+          const dA = a.date || "";
+          const dB = b.date || "";
+          if (dA !== dB) return dA.localeCompare(dB) * dir;
+          return (b.id || "").localeCompare(a.id || "");
+        }
+        case "payee": {
+          return (
+            (a.payee || "").localeCompare(b.payee || "", undefined, {
+              sensitivity: "base",
+            }) * dir
+          );
+        }
+        case "category": {
+          return (
+            (a.category || "").localeCompare(b.category || "", undefined, {
+              sensitivity: "base",
+            }) * dir
+          );
+        }
+        case "account": {
+          return (
+            (a.account || "").localeCompare(b.account || "", undefined, {
+              sensitivity: "base",
+            }) * dir
+          );
+        }
+        case "amount": {
+          return (a.amount - b.amount) * dir;
+        }
+        case "status": {
+          return (a.status || "").localeCompare(b.status || "") * dir;
+        }
+        default:
+          return 0;
+      }
     });
   };
 
@@ -295,22 +361,138 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       <div class="bg-card rounded-2xl border border-card-border shadow-xs overflow-hidden flex flex-col">
         <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-340px)]">
           <table class="w-full text-left text-xs text-text-main border-collapse">
-            <thead class="sticky top-0 z-10 bg-card-subtle shadow-[0_1px_0_0_var(--color-card-border)]">
+            <thead class="sticky top-0 z-10 bg-card-subtle shadow-[0_1px_0_0_var(--color-card-border)] select-none">
               <tr class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-card-subtle">
                 <th class="py-3 px-4 w-10 text-center sticky top-0 bg-card-subtle">#</th>
-                <th class="py-3 px-4 w-28 sticky top-0 bg-card-subtle">Date</th>
-                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Payee / Description</th>
-                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Category</th>
-                <th class="py-3 px-4 sticky top-0 bg-card-subtle">Account</th>
+
+                {/* Sortable Date Header */}
+                <th
+                  onClick={() => handleSort("date")}
+                  class="py-3 px-4 w-28 sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span>Date</span>
+                    <Show
+                      when={sortField() === "date"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
+                {/* Sortable Payee Header */}
+                <th
+                  onClick={() => handleSort("payee")}
+                  class="py-3 px-4 sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span>Payee / Description</span>
+                    <Show
+                      when={sortField() === "payee"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
+                {/* Sortable Category Header */}
+                <th
+                  onClick={() => handleSort("category")}
+                  class="py-3 px-4 sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span>Category</span>
+                    <Show
+                      when={sortField() === "category"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
+                {/* Sortable Account Header */}
+                <th
+                  onClick={() => handleSort("account")}
+                  class="py-3 px-4 sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center gap-1.5">
+                    <span>Account</span>
+                    <Show
+                      when={sortField() === "account"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
                 <th class="py-3 px-4 sticky top-0 bg-card-subtle">Notes</th>
-                <th class="py-3 px-4 text-right sticky top-0 bg-card-subtle">Amount</th>
-                <th class="py-3 px-4 text-center sticky top-0 bg-card-subtle">Status</th>
+
+                {/* Sortable Amount Header */}
+                <th
+                  onClick={() => handleSort("amount")}
+                  class="py-3 px-4 text-right sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center justify-end gap-1.5">
+                    <span>Amount</span>
+                    <Show
+                      when={sortField() === "amount"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
+                {/* Sortable Status Header */}
+                <th
+                  onClick={() => handleSort("status")}
+                  class="py-3 px-4 text-center sticky top-0 bg-card-subtle cursor-pointer hover:text-text-main transition-colors"
+                >
+                  <div class="flex items-center justify-center gap-1.5">
+                    <span>Status</span>
+                    <Show
+                      when={sortField() === "status"}
+                      fallback={<ArrowUpDown class="w-3 h-3 text-text-subtle opacity-40" />}
+                    >
+                      {sortDirection() === "asc" ? (
+                        <ArrowUp class="w-3 h-3 text-primary stroke-[2.5]" />
+                      ) : (
+                        <ArrowDown class="w-3 h-3 text-primary stroke-[2.5]" />
+                      )}
+                    </Show>
+                  </div>
+                </th>
+
                 <th class="py-3 px-4 text-right w-20 sticky top-0 bg-card-subtle">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-card-border">
               <For
-                each={filteredTransactions()}
+                each={sortedTransactions()}
                 fallback={
                   <tr>
                     <td colspan="9" class="py-16 text-center text-text-muted">
