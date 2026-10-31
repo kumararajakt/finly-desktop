@@ -1,4 +1,4 @@
-import { Component, createSignal, createMemo, For, Show } from "solid-js";
+import { Component, createSignal, createMemo, onMount, For, Show } from "solid-js";
 import {
   X,
   Upload,
@@ -13,6 +13,8 @@ import {
   ArrowUpRight,
   SlidersHorizontal,
   Tags,
+  Sparkles,
+  Loader2,
 } from "./icons";
 import { Account, Transaction, CategoryItem } from "../types/finance";
 import {
@@ -20,7 +22,15 @@ import {
   detectDefaultMapping,
   convertRowsToTransactions,
   ColumnMappingConfig,
+  ParsedTransactionRow,
+  getCategoryColor,
 } from "../utils/csv";
+import {
+  classifyTransactionsWithAI,
+  CategorizationInput,
+} from "../utils/ai/smartCategorizer";
+import { getAIConfig } from "../utils/ai/storage";
+import { AIConfig, DEFAULT_AI_CONFIG } from "../utils/ai/types";
 
 interface ImportTransactionsModalProps {
   csvText: string;
@@ -28,6 +38,7 @@ interface ImportTransactionsModalProps {
   accounts: Account[];
   categories?: CategoryItem[];
   currencySymbol?: string;
+  isAiEnabled?: boolean;
   onClose: () => void;
   onImport: (transactions: Omit<Transaction, "id">[]) => void;
 }
@@ -60,6 +71,23 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
   const [showRawSample, setShowRawSample] = createSignal(true);
   const [isImporting, setIsImporting] = createSignal(false);
 
+  // Smart Auto-Categorization state & row overrides
+  const [aiConfig, setAiConfig] = createSignal<AIConfig>(DEFAULT_AI_CONFIG);
+  const [rowOverrides, setRowOverrides] = createSignal<Record<string, Partial<ParsedTransactionRow>>>({});
+  const [showSmartModal, setShowSmartModal] = createSignal(false);
+  const [smartScope, setSmartScope] = createSignal<"uncategorized" | "all">("uncategorized");
+  const [isClassifying, setIsClassifying] = createSignal(false);
+  const [classificationProgress, setClassificationProgress] = createSignal({ done: 0, total: 0 });
+
+  onMount(async () => {
+    try {
+      const cfg = await getAIConfig();
+      setAiConfig(cfg);
+    } catch {
+      // ignore
+    }
+  });
+
   // Convert CSV rows using current config
   const parsedData = createMemo(() => {
     return convertRowsToTransactions(
@@ -71,8 +99,35 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
     );
   });
 
-  // Keep selection synced when parsed rows change (unless user manually modified)
-  const currentItems = () => parsedData().items;
+  // Keep selection and items synced when parsed rows change or overrides are applied
+  const currentItems = createMemo(() => {
+    const base = parsedData().items;
+    const overrides = rowOverrides();
+    if (Object.keys(overrides).length === 0) return base;
+    return base.map((item) => {
+      const o = overrides[item.id];
+      if (!o) return item;
+      return {
+        ...item,
+        ...o,
+        transaction: {
+          ...item.transaction,
+          ...(o.transaction || {}),
+        },
+      };
+    });
+  });
+
+  // Count unmapped or general rows
+  const uncategorizedCount = createMemo(() => {
+    return currentItems().filter(
+      (it) =>
+        it.isValid &&
+        (!it.transaction.category ||
+          it.transaction.category.toLowerCase() === "general" ||
+          it.transaction.category.toLowerCase() === "uncategorized")
+    ).length;
+  });
 
   // Initialize selectedRowIds on first parse or when not manually modified
   createMemo(() => {
@@ -190,6 +245,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
         const newParsed = parseRawCSV(text);
         setConfig(detectDefaultMapping(newParsed.headers, newParsed.rows, props.accounts));
         setHasManuallyChangedSelection(false);
+        setRowOverrides({});
       }
     };
     reader.readAsText(file);
@@ -216,12 +272,115 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
     }
   };
 
+  // Handle batch Smart Auto-Categorization
+  const handleRunSmartCategorize = async () => {
+    if (isClassifying()) return;
+    const items = currentItems();
+    const scope = smartScope();
+
+    const targetRows = items.filter((it) => {
+      if (!it.isValid) return false;
+      if (scope === "uncategorized") {
+        const cat = (it.transaction.category || "").toLowerCase();
+        return !cat || cat === "general" || cat === "uncategorized";
+      }
+      return true;
+    });
+
+    if (targetRows.length === 0) {
+      setShowSmartModal(false);
+      return;
+    }
+
+    setIsClassifying(true);
+    setClassificationProgress({ done: 0, total: targetRows.length });
+
+    try {
+      const inputs: CategorizationInput[] = targetRows.map((r) => ({
+        id: r.id,
+        rawDescription: r.originalPayee || r.transaction.payee,
+        amount: r.transaction.amount,
+        type: r.transaction.type,
+        date: r.transaction.date,
+        currentCategory: r.transaction.category,
+      }));
+
+      const results = await classifyTransactionsWithAI(
+        inputs,
+        props.categories || [],
+        aiConfig(),
+        (done, total) => setClassificationProgress({ done, total })
+      );
+
+      const newOverrides: Record<string, Partial<ParsedTransactionRow>> = {};
+      for (const res of results) {
+        const existingCat = (props.categories || []).find(
+          (c) => c.name.toLowerCase() === res.category.toLowerCase()
+        );
+        const catColor = existingCat
+          ? existingCat.color
+          : getCategoryColor(res.category, props.categories);
+
+        const target = targetRows.find((t) => t.id === res.id);
+        if (target) {
+          newOverrides[res.id] = {
+            isSmartCategorized: true,
+            categorizationConfidence: res.confidence,
+            categorizationReason: res.reason,
+            isNewCategory: res.isNewCategory,
+            originalPayee: inputs.find((i) => i.id === res.id)?.rawDescription,
+            transaction: {
+              ...target.transaction,
+              payee: res.cleanPayee,
+              category: res.category,
+              categoryColor: catColor,
+            },
+          };
+        }
+      }
+
+      setRowOverrides((prev) => ({ ...prev, ...newOverrides }));
+      setShowSmartModal(false);
+    } catch (err) {
+      console.error("Smart categorization failed:", err);
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
+  // Update single row category inline from table dropdown
+  const handleUpdateRowCategory = (rowId: string, newCategoryName: string) => {
+    const existingCat = (props.categories || []).find(
+      (c) => c.name.toLowerCase() === newCategoryName.toLowerCase()
+    );
+    const catColor = existingCat
+      ? existingCat.color
+      : getCategoryColor(newCategoryName, props.categories);
+
+    const baseRow = currentItems().find((i) => i.id === rowId);
+    if (!baseRow) return;
+
+    setRowOverrides((prev) => ({
+      ...prev,
+      [rowId]: {
+        ...(prev[rowId] || {}),
+        isNewCategory: !existingCat,
+        transaction: {
+          ...(prev[rowId]?.transaction || baseRow.transaction),
+          category: newCategoryName,
+          categoryColor: catColor,
+        },
+      },
+    }));
+  };
+
   // Helper updater for config fields
   const updateConfig = <K extends keyof ColumnMappingConfig>(
     key: K,
     value: ColumnMappingConfig[K]
   ) => {
     setConfig((prev) => ({ ...prev, [key]: value }));
+    setRowOverrides({});
   };
 
   const headers = () => parsedCSV().headers;
@@ -922,8 +1081,24 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                   </div>
                 </div>
 
-                <div class="text-xs text-text-muted">
-                  Showing {filteredPreviewRows().length} of {currentItems().length} rows
+                <div class="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSmartModal(true)}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 via-primary to-cyan-500 hover:opacity-95 text-white shadow-xs transition cursor-pointer"
+                  >
+                    <Sparkles class="w-3.5 h-3.5" />
+                    <span>Smart Categorize</span>
+                    <Show when={uncategorizedCount() > 0}>
+                      <span class="text-[10px] bg-white/25 px-1.5 py-0.2 rounded-full font-bold">
+                        {uncategorizedCount()} unmapped
+                      </span>
+                    </Show>
+                  </button>
+
+                  <div class="text-xs text-text-muted">
+                    Showing {filteredPreviewRows().length} of {currentItems().length} rows
+                  </div>
                 </div>
               </div>
 
@@ -990,7 +1165,23 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                                 {item.transaction.date}
                               </td>
                               <td class="py-2 px-3 font-medium">
-                                <div class="truncate max-w-xs">{item.transaction.payee}</div>
+                                <div class="flex items-center gap-1.5">
+                                  <div class="truncate max-w-xs">{item.transaction.payee}</div>
+                                  <Show when={item.isSmartCategorized}>
+                                    <span
+                                      title={item.categorizationReason || "Smart cleaned & categorized"}
+                                      class="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 shrink-0"
+                                    >
+                                      <Sparkles class="w-2.5 h-2.5" />
+                                      <span>AI</span>
+                                    </span>
+                                  </Show>
+                                </div>
+                                <Show when={item.originalPayee && item.originalPayee !== item.transaction.payee}>
+                                  <div class="text-[10px] text-text-subtle truncate max-w-xs font-mono" title={item.originalPayee}>
+                                    Raw: {item.originalPayee}
+                                  </div>
+                                </Show>
                                 <Show when={item.transaction.notes}>
                                   <div class="text-[10px] text-text-subtle truncate max-w-xs">
                                     {item.transaction.notes}
@@ -1004,15 +1195,48 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                               </td>
                               <td class="py-2 px-3 whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
-                                  <span
-                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                    style={{
-                                      "background-color": `${item.transaction.categoryColor || "#64748b"}20`,
-                                      color: item.transaction.categoryColor || "#64748b",
-                                    }}
-                                  >
-                                    {item.transaction.category}
-                                  </span>
+                                  <div class="relative group">
+                                    <select
+                                      value={item.transaction.category}
+                                      onChange={(e) => handleUpdateRowCategory(item.id, e.currentTarget.value)}
+                                      class="appearance-none text-[10px] font-semibold px-2 py-0.5 pr-4 rounded-full border border-card-border cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+                                      style={{
+                                        "background-color": `${item.transaction.categoryColor || "#64748b"}20`,
+                                        color: item.transaction.categoryColor || "#64748b",
+                                      }}
+                                    >
+                                      <Show
+                                        when={
+                                          !(props.categories || []).some(
+                                            (c) =>
+                                              c.name.toLowerCase() ===
+                                              item.transaction.category.toLowerCase()
+                                          )
+                                        }
+                                      >
+                                        <option value={item.transaction.category} selected>
+                                          {item.transaction.category}
+                                        </option>
+                                      </Show>
+                                      <For each={props.categories || []}>
+                                        {(c) => (
+                                          <option
+                                            value={c.name}
+                                            selected={
+                                              c.name.toLowerCase() ===
+                                              item.transaction.category.toLowerCase()
+                                            }
+                                          >
+                                            {c.name}
+                                          </option>
+                                        )}
+                                      </For>
+                                      <option value="General">General</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] opacity-70">
+                                      ▼
+                                    </div>
+                                  </div>
                                   <Show when={item.isNewCategory}>
                                     <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-primary/15 text-primary border border-primary/25">
                                       New
@@ -1115,6 +1339,133 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
           </div>
         </div>
       </div>
+
+      {/* Smart Auto-Categorization Configuration & Progress Modal */}
+      <Show when={showSmartModal()}>
+        <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div class="relative w-full max-w-md bg-card rounded-2xl border border-card-border p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-card-border">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 p-0.5 flex items-center justify-center text-white">
+                  <Sparkles class="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-text-main">Smart Auto-Categorization</h3>
+                  <p class="text-[11px] text-text-muted">
+                    {aiConfig().enabled
+                      ? `Using ${aiConfig().provider.toUpperCase()} (${aiConfig().provider === "ollama" ? aiConfig().ollamaModel : aiConfig().provider === "gemini" ? aiConfig().geminiModel : "Cloud"})`
+                      : "Using Finly Fast Local Heuristics"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isClassifying()}
+                onClick={() => setShowSmartModal(false)}
+                class="p-1 rounded-lg text-text-subtle hover:text-text-main hover:bg-card-subtle cursor-pointer"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-text-main">
+              <p class="text-text-muted leading-relaxed">
+                Cleans obscure statement prefixes (e.g. <code class="bg-card-subtle px-1 rounded text-text-main">UPI/</code>, <code class="bg-card-subtle px-1 rounded text-text-main">POS</code>, <code class="bg-card-subtle px-1 rounded text-text-main">ACH</code>, reference IDs) and auto-classifies transactions against your categories.
+              </p>
+
+              <div class="space-y-2 pt-1">
+                <label class="text-[11px] font-semibold text-text-muted uppercase tracking-wider block">Scope</label>
+                <div class="space-y-1.5">
+                  <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-card-border hover:bg-card-subtle cursor-pointer transition">
+                    <input
+                      type="radio"
+                      name="smartScope"
+                      value="uncategorized"
+                      checked={smartScope() === "uncategorized"}
+                      onChange={() => setSmartScope("uncategorized")}
+                      disabled={isClassifying()}
+                      class="text-primary focus:ring-primary"
+                    />
+                    <div class="flex-1 flex items-center justify-between">
+                      <span class="font-medium">Uncategorized & General rows only</span>
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-card-subtle text-text-muted">
+                        {uncategorizedCount()} rows
+                      </span>
+                    </div>
+                  </label>
+
+                  <label class="flex items-center gap-2.5 p-2.5 rounded-xl border border-card-border hover:bg-card-subtle cursor-pointer transition">
+                    <input
+                      type="radio"
+                      name="smartScope"
+                      value="all"
+                      checked={smartScope() === "all"}
+                      onChange={() => setSmartScope("all")}
+                      disabled={isClassifying()}
+                      class="text-primary focus:ring-primary"
+                    />
+                    <div class="flex-1 flex items-center justify-between">
+                      <span class="font-medium">All valid statement rows</span>
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-card-subtle text-text-muted">
+                        {stats().totalValid} rows
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Progress Display */}
+              <Show when={isClassifying()}>
+                <div class="pt-3 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-semibold text-primary flex items-center gap-1.5">
+                      <Loader2 class="w-3.5 h-3.5 animate-spin" />
+                      <span>Classifying transactions...</span>
+                    </span>
+                    <span class="font-mono text-text-muted">
+                      {classificationProgress().done} / {classificationProgress().total}
+                    </span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-card-subtle overflow-hidden border border-card-border">
+                    <div
+                      class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-300"
+                      style={{
+                        width: `${
+                          classificationProgress().total > 0
+                            ? Math.round((classificationProgress().done / classificationProgress().total) * 100)
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </Show>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-card-border">
+              <button
+                type="button"
+                disabled={isClassifying()}
+                onClick={() => setShowSmartModal(false)}
+                class="px-3.5 py-1.5 text-xs font-semibold text-text-muted hover:text-text-main transition rounded-xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isClassifying() || (smartScope() === "uncategorized" && uncategorizedCount() === 0)}
+                onClick={handleRunSmartCategorize}
+                class="inline-flex items-center gap-1.5 bg-gradient-to-r from-indigo-600 to-primary hover:opacity-95 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-xs cursor-pointer"
+              >
+                <Show when={isClassifying()} fallback={<Sparkles class="w-3.5 h-3.5" />}>
+                  <Loader2 class="w-3.5 h-3.5 animate-spin" />
+                </Show>
+                <span>{isClassifying() ? "Classifying..." : "Start Auto-Categorization"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 };

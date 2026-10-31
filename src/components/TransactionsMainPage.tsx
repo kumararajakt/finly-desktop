@@ -1124,6 +1124,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           accounts={props.accounts || []}
           categories={props.categories || []}
           currencySymbol={props.currencySymbol}
+          isAiEnabled={props.isAiEnabled}
           onClose={() => setImportFile(null)}
           onImport={(imported) => {
             if (props.onImportCSV) {

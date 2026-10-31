@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Transaction, Account, CategoryItem } from "../types/finance";
+import { classifyBankDescriptionLocal } from "./ai/smartCategorizer";
 
 // Detect if running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -55,6 +56,10 @@ export interface ParsedTransactionRow {
   isValid: boolean;
   error?: string;
   isNewCategory?: boolean;
+  originalPayee?: string;
+  isSmartCategorized?: boolean;
+  categorizationConfidence?: "high" | "medium" | "low";
+  categorizationReason?: string;
   transaction: Omit<Transaction, "id">;
   rawRow: string[];
 }
@@ -626,7 +631,11 @@ export function convertRowsToTransactions(
     }
 
     const parsedDate = parseCustomDate(rawDate, config.dateFormat);
-    const payee = (rawPayee || "").trim() || "Untitled Transaction";
+    const rawPayeeClean = (rawPayee || "").trim() || "Untitled Transaction";
+    let payee = rawPayeeClean;
+    let isSmartCategorized = false;
+    let categorizationConfidence: "high" | "medium" | "low" | undefined = undefined;
+    let categorizationReason: string | undefined = undefined;
 
     // Resolve Category
     let category = "General";
@@ -635,7 +644,17 @@ export function convertRowsToTransactions(
     } else if (config.categorySource === "column" && catIdx !== undefined && row[catIdx]?.trim()) {
       category = row[catIdx].trim();
     } else if (config.categorySource === "auto" || !category || category === "General") {
-      category = autoCategorizeByPayee(payee);
+      // Intelligent heuristic categorization & payee cleaning
+      const smart = classifyBankDescriptionLocal(rawPayeeClean, existingCategories || []);
+      if (smart.category !== "General" || smart.confidence !== "low") {
+        category = smart.category;
+        payee = smart.cleanPayee || rawPayeeClean;
+        isSmartCategorized = true;
+        categorizationConfidence = smart.confidence;
+        categorizationReason = "Heuristic match";
+      } else {
+        category = autoCategorizeByPayee(rawPayeeClean);
+      }
     }
 
     const matchedCategory = existingCategories?.find(
@@ -680,6 +699,10 @@ export function convertRowsToTransactions(
       isValid,
       error,
       isNewCategory,
+      originalPayee: rawPayeeClean !== payee ? rawPayeeClean : undefined,
+      isSmartCategorized,
+      categorizationConfidence,
+      categorizationReason,
       transaction: {
         date: parsedDate,
         payee,
