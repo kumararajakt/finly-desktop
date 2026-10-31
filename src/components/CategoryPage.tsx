@@ -6,7 +6,6 @@ import {
   Trash2,
   Tags,
   ArrowRight,
-  TrendingUp,
   ArrowDownLeft,
   ArrowUpRight,
 } from "./icons";

@@ -9,7 +9,6 @@ import {
   TrendingUp,
   CheckCircle2,
   Clock,
-  ArrowRight,
   ChevronDown,
 } from "./icons";
 import { LoanRecord, LoanPayment } from "../types/finance";

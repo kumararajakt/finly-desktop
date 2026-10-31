@@ -154,7 +154,7 @@ export function parseRawCSV(csvText: string): ParsedCSV {
  */
 export function detectDefaultMapping(
   headers: string[],
-  rows: string[][],
+  _rows: string[][],
   accounts: Account[]
 ): ColumnMappingConfig {
   const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
