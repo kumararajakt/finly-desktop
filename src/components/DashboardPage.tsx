@@ -13,16 +13,22 @@ import {
   ArrowRight,
   Receipt,
 } from "./icons";
-import { Account, Transaction } from "../types/finance";
+import { Account, Transaction, BudgetItem, CategoryItem, LoanRecord } from "../types/finance";
+import { DashboardHealthDigest } from "./DashboardHealthDigest";
 
 interface DashboardPageProps {
   accounts: Account[];
   transactions: Transaction[];
+  budgets?: BudgetItem[];
+  categories?: CategoryItem[];
+  loans?: LoanRecord[];
   userName?: string;
   currencySymbol?: string;
+  isAiEnabled?: boolean;
   onNavigateToTransactions: (filter?: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount: () => void;
+  onOpenAskFinly?: (prompt?: string) => void;
 }
 
 export const DashboardPage: Component<DashboardPageProps> = (props) => {
@@ -134,6 +140,20 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
           </button>
         </div>
       </div>
+
+      {/* Financial Health Digest (Monthly Trends, Anomalies, Savings Opportunities) */}
+      <DashboardHealthDigest
+        accounts={props.accounts}
+        transactions={props.transactions}
+        budgets={props.budgets || []}
+        categories={props.categories || []}
+        loans={props.loans || []}
+        currencySymbol={props.currencySymbol}
+        userName={props.userName}
+        isAiEnabled={props.isAiEnabled}
+        onNavigateToCategory={(cat) => props.onNavigateToTransactions(cat)}
+        onOpenAskFinly={props.onOpenAskFinly}
+      />
 
       {/* Action / Attention Items (Pending & Flagged) */}
       {(pendingCount() > 0 || flaggedCount() > 0) && (

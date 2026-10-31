@@ -442,17 +442,22 @@ function App() {
         <DashboardPage
           accounts={accounts()}
           transactions={transactions()}
+          budgets={budgets()}
+          categories={categories()}
+          loans={loans()}
           userName={userProfile()?.name}
           currencySymbol={userProfile()?.currencySymbol}
+          isAiEnabled={isAiEnabled()}
           onNavigateToTransactions={(filter) => {
             if (filter) setActiveFilter(filter);
             setCurrentView("transactions");
           }}
           onOpenAddTransaction={() => {
-          setEditingTransaction(null);
-          setIsModalOpen(true);
-        }}
+            setEditingTransaction(null);
+            setIsModalOpen(true);
+          }}
           onOpenAddAccount={() => setIsAccountModalOpen(true)}
+          onOpenAskFinly={(prompt) => handleOpenAskFinly(prompt)}
         />
       ) : currentView() === "budgets" ? (
         <BudgetPage
