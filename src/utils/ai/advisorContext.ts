@@ -1,4 +1,5 @@
 import { Account, BudgetItem, CategoryItem, LoanRecord, Transaction } from "../../types/finance";
+import { parseLocalNaturalLanguage } from "./naturalLanguageParser";
 
 export interface AdvisorData {
   accounts: Account[];
@@ -12,13 +13,19 @@ export interface AdvisorData {
 }
 
 export interface FinlyActionPayload {
-  type: "update_category" | "clear_flag" | "update_payee";
-  txId: string;
+  type: "update_category" | "clear_flag" | "update_payee" | "create_transaction";
+  txId?: string;
   payee: string;
   newPayee?: string;
   amount?: number;
   oldCategory?: string;
   newCategory?: string;
+  category?: string;
+  account?: string;
+  toAccount?: string;
+  transactionType?: "expense" | "income" | "transfer";
+  date?: string;
+  notes?: string;
 }
 
 /**
@@ -202,12 +209,13 @@ export function buildFinancialSystemPrompt(data: AdvisorData): string {
   const sym = m.sym;
   const userName = data.userName?.trim() || "User";
   const validCategories = data.categories.map((c) => c.name).join(", ");
+  const validAccounts = data.accounts.map((a) => `"${a.name}"`).join(", ");
 
   const accountsSummary =
     data.accounts.length === 0
       ? "No accounts recorded yet."
       : data.accounts
-          .map((a) => `- ${a.name} (${a.type}): ${a.balance < 0 ? "-" : ""}${sym}${Math.abs(a.balance).toFixed(2)}`)
+          .map((a) => `- Account Name: "${a.name}" | Type: ${a.type} | Current Balance: ${a.balance < 0 ? "-" : ""}${sym}${Math.abs(a.balance).toFixed(2)}`)
           .join("\n");
 
   const budgetsSummary =
@@ -273,13 +281,15 @@ CRITICAL INSTRUCTIONS:
 - Answer directly, clearly, and concisely in friendly markdown.
 - Do NOT output chain of thought or internal thinking steps.
 - Always provide your direct conversational response and explanation first.
-- If recommending a category change or action, explain why in your answer and then append the action block at the end.
+- When the user mentions an expense, spending, purchase, income, or transaction to record (e.g. "dinner with alex for 320rs", "spent 50 on groceries", "salary 5000"), you MUST append the :::finly_action block for create_transaction so the user can confirm it with 1 click!
+- If recommending a category change or action on an existing transaction, explain why and append the action block at the end.
 
 CURRENT DATE & CONTEXT:
 - Today is: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 - Active reporting month: ${m.monthName}
 - Currency: ${sym}
 - Valid System Categories: [${validCategories || "Healthcare, Housing, Groceries, Dining Out, Utilities, Entertainment, Shopping, Transportation, Investments, Salary"}]
+- Valid Existing Accounts: [${validAccounts}] (You MUST use the exact Name from this list!)
 ${selectedSection}
 USER'S REAL FINANCIAL SNAPSHOT:
 1. NET WORTH & ACCOUNTS:
@@ -311,6 +321,11 @@ ${flaggedDetails}
 ${recentTxSummary}
 
 ACTION PROTOCOL:
+If the user mentions an expense, spending, purchase, income, or asks to create/record a transaction (e.g. "dinner with alex for 320rs", "Add dinner with Alex for $42", "I spent 150 on groceries", "Record salary 5000", "Transfer 200 from Chase to Savings"):
+:::finly_action
+{"type":"create_transaction","payee":"<PAYEE>","amount":<AMOUNT>,"transactionType":"expense"|"income"|"transfer","category":"<CATEGORY>","account":"<ACCOUNT>","date":"YYYY-MM-DD","notes":"<NOTES_OR_EMPTY>"}
+:::
+
 If the user asks to clean up, clarify, or make the transaction description/payee name more meaningful (e.g. converting messy bank codes like "BIL/ONL/.../Test" to a clean readable name):
 :::finly_action
 {"type":"update_payee","txId":"<TRANSACTION_ID>","payee":"<CURRENT_PAYEE>","newPayee":"<CLEAN_READABLE_NAME>","amount":<AMOUNT>}
@@ -327,8 +342,10 @@ Or to clear a flag:
 :::
 
 RULES FOR ACTIONS:
-- <TRANSACTION_ID> must be the exact ID of the transaction (from selected transactions or recent transactions).
-- newCategory should match one of the Valid System Categories if possible, or a sensible category name.
+- For create_transaction, amount must be a positive number. Specify transactionType ("expense", "income", or "transfer").
+- <ACCOUNT> must be the exact name string from Valid Existing Accounts: [${validAccounts}]. NEVER append suffixes like "(credit)", "(savings)", or "(checking)".
+- <TRANSACTION_ID> must be the exact ID of the transaction (when updating existing transactions).
+- newCategory or category should match one of the Valid System Categories if possible, or a sensible category name.
 - Always explain clearly why you are recommending or performing the change.
 - The UI will render this block as an interactive 1-click confirmation card for the user.`;
 }
@@ -431,6 +448,49 @@ export function generateLocalFinancialAnswer(question: string, data: AdvisorData
       "",
       `*You can ask me to change categories, check for duplicates, or verify budget impact for these transactions.*`,
     ].join("\n");
+  }
+
+  // Natural language transaction creation request (e.g. "Add dinner for 42", "Spent 50 on groceries", "Record salary 5000")
+  if (
+    q.startsWith("add ") ||
+    q.startsWith("record ") ||
+    q.startsWith("log ") ||
+    q.startsWith("create ") ||
+    q.startsWith("spent ") ||
+    q.startsWith("bought ") ||
+    q.includes("add transaction") ||
+    q.includes("record transaction") ||
+    ((q.includes("spent") || q.includes("paid") || q.includes("for") || q.includes("salary")) && /\d+/.test(q))
+  ) {
+    const parsed = parseLocalNaturalLanguage(question, {
+      accounts: data.accounts,
+      categories: data.categories,
+      currencySymbol: data.currencySymbol,
+    });
+
+    if (parsed.amount && parsed.amount > 0) {
+      const typeLabel = parsed.type === "income" ? "Income" : parsed.type === "transfer" ? "Transfer" : "Expense";
+      return [
+        `### ➕ New Transaction Proposal`,
+        `I've parsed your request and prepared a new **${typeLabel}** for **${parsed.payee}** (${sym}${parsed.amount.toFixed(2)}) under **${parsed.category || "Other"}**.`,
+        "",
+        `Click the card below to add it directly to your transaction records:`,
+        "",
+        `:::finly_action`,
+        JSON.stringify({
+          type: "create_transaction",
+          payee: parsed.payee,
+          amount: parsed.amount,
+          transactionType: parsed.type,
+          category: parsed.category || "Other",
+          account: parsed.account || data.accounts[0]?.name || "Primary",
+          toAccount: parsed.toAccount,
+          date: parsed.date,
+          notes: parsed.notes || "",
+        }),
+        `:::`,
+      ].join("\n");
+    }
   }
 
   // Net worth & Accounts

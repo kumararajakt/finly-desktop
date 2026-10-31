@@ -13,6 +13,7 @@ import {
   PieChart,
   Wallet,
   ArrowRight,
+  Plus,
 } from "./icons";
 import { Account, BudgetItem, CategoryItem, LoanRecord, Transaction } from "../types/finance";
 import { AIConfig, AIMessage, DEFAULT_AI_CONFIG } from "../utils/ai/types";
@@ -26,6 +27,7 @@ import {
   generateLocalFinancialAnswer,
 } from "../utils/ai/advisorContext";
 import { FormattedMessage } from "./FormattedMessage";
+import { parseLocalNaturalLanguage } from "../utils/ai/naturalLanguageParser";
 
 export interface AskFinlyDrawerProps {
   isOpen: boolean;
@@ -39,6 +41,7 @@ export interface AskFinlyDrawerProps {
   attachedTransactions?: Transaction[];
   onClearAttachedTransactions?: () => void;
   onUpdateTransaction?: (tx: Transaction) => Promise<void>;
+  onCreateTransaction?: (tx: Omit<Transaction, "id">) => Promise<Transaction | void>;
   initialPrompt?: string;
   currencySymbol?: string;
   userName?: string;
@@ -64,7 +67,27 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
   const [isApplyingAction, setIsApplyingAction] = createSignal<string | null>(null);
 
   const getActionKey = (action: FinlyActionPayload) =>
-    `${action.type}_${action.txId}_${action.newCategory || ""}_${action.newPayee || ""}`;
+    action.type === "create_transaction"
+      ? `create_${action.payee}_${action.amount}_${action.date || ""}`
+      : `${action.type}_${action.txId || ""}_${action.newCategory || ""}_${action.newPayee || ""}`;
+
+  const getResolvedAccountName = (accName?: string) => {
+    if (!accName || props.accounts.length === 0) return props.accounts[0]?.name || "Primary";
+    const clean = accName.replace(/\s*\([^)]*\)/g, "").trim().toLowerCase();
+    const direct = props.accounts.find((a) => a.name.toLowerCase().trim() === clean);
+    if (direct) return direct.name;
+    const partial = props.accounts.find((a) => {
+      const aLower = a.name.toLowerCase().trim();
+      return aLower === clean || aLower.includes(clean) || clean.includes(aLower);
+    });
+    if (partial) return partial.name;
+    const wordMatch = props.accounts.find((a) => {
+      const aWords = a.name.toLowerCase().split(/\s+/);
+      const rawWords = clean.split(/\s+/);
+      return rawWords.some((rw) => aWords.includes(rw));
+    });
+    return wordMatch ? wordMatch.name : props.accounts[0]?.name || "Primary";
+  };
 
   let messagesEndRef: HTMLDivElement | undefined;
   let inputRef: HTMLInputElement | undefined;
@@ -207,7 +230,7 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
       try {
         let rawJson = match[1].replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
         const parsed = JSON.parse(rawJson);
-        if (parsed.txId && parsed.type) {
+        if (parsed.type && (parsed.txId || parsed.type === "create_transaction")) {
           actions.push(parsed);
         }
       } catch {
@@ -225,6 +248,37 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
 
   const handleApplyAction = async (action: FinlyActionPayload) => {
     const actionKey = getActionKey(action);
+
+    if (action.type === "create_transaction") {
+      if (!props.onCreateTransaction || appliedActions()[actionKey]) return;
+      setIsApplyingAction(actionKey);
+      try {
+        const cat = props.categories.find(
+          (c) => c.name.toLowerCase() === (action.category || "Other").toLowerCase()
+        );
+        const isExpense = action.transactionType !== "income";
+        const numAmt = action.amount ? Math.abs(action.amount) : 0;
+        await props.onCreateTransaction({
+          date: action.date || new Date().toISOString().split("T")[0],
+          payee: action.payee,
+          category: action.category || "Other",
+          categoryColor: cat?.color || "#64748b",
+          account: getResolvedAccountName(action.account),
+          toAccount: action.toAccount,
+          amount: isExpense ? -numAmt : numAmt,
+          type: action.transactionType || "expense",
+          status: "cleared",
+          notes: action.notes || undefined,
+        });
+        setAppliedActions((prev) => ({ ...prev, [actionKey]: true }));
+      } catch (err) {
+        console.error("Failed to create transaction from AI action:", err);
+      } finally {
+        setIsApplyingAction(null);
+      }
+      return;
+    }
+
     if (!props.onUpdateTransaction || appliedActions()[actionKey]) return;
 
     setIsApplyingAction(actionKey);
@@ -320,6 +374,31 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
 
         try {
           reply = await sendAIChatRequest(aiMessages, cfg);
+
+          // Safety net: if AI model did not emit :::finly_action block, but user entered a transaction/expense phrase
+          if (
+            !reply.includes(":::finly_action") &&
+            (!props.attachedTransactions || props.attachedTransactions.length === 0)
+          ) {
+            const parsed = parseLocalNaturalLanguage(prompt, {
+              accounts: props.accounts,
+              categories: props.categories,
+              currencySymbol: symbol(),
+            });
+            if (parsed.amount && parsed.amount > 0) {
+              reply = `${reply.trim()}\n\n:::finly_action\n${JSON.stringify({
+                type: "create_transaction",
+                payee: parsed.payee,
+                amount: parsed.amount,
+                transactionType: parsed.type,
+                category: parsed.category || "Dining Out",
+                account: parsed.account || props.accounts[0]?.name || "Primary",
+                toAccount: parsed.toAccount,
+                date: parsed.date,
+                notes: parsed.notes || "",
+              })}\n:::`;
+            }
+          }
         } catch (apiErr: any) {
           console.warn("AI provider error, falling back to local advisor:", apiErr);
           const localFallback = generateLocalFinancialAnswer(prompt, advisorData);
@@ -384,6 +463,7 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
     }
 
     return [
+      `Add dinner with Alex for ${symbol()}42`,
       "How much did I spend this month?",
       "Which budgets are nearing their limit?",
       "What is my total net worth breakdown?",
@@ -634,6 +714,15 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
                                 const actionKey = getActionKey(action);
                                 const isApplied = () => {
                                   if (appliedActions()[actionKey]) return true;
+                                  if (action.type === "create_transaction") {
+                                    const match = props.transactions.find(
+                                      (t) =>
+                                        t.payee.toLowerCase().trim() === action.payee.toLowerCase().trim() &&
+                                        Math.abs(t.amount) === (action.amount ? Math.abs(action.amount) : 0) &&
+                                        t.date === (action.date || new Date().toISOString().split("T")[0])
+                                    );
+                                    if (match) return true;
+                                  }
                                   const current = props.transactions.find((t) => t.id === action.txId) ||
                                     props.attachedTransactions?.find((t) => t.id === action.txId);
                                   if (current) {
@@ -661,12 +750,16 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
                                             ? "Category Update Proposal"
                                             : action.type === "update_payee"
                                             ? "Rename Description Proposal"
+                                            : action.type === "create_transaction"
+                                            ? "New Transaction Proposal"
                                             : "Clear Flag Proposal"}
                                         </span>
                                       </div>
                                       <Show when={action.amount !== undefined}>
-                                        <span class="text-xs font-mono font-semibold text-text-main">
-                                          {symbol()}{action.amount?.toFixed(2)}
+                                        <span class={`text-xs font-mono font-semibold ${
+                                          action.transactionType === "income" ? "text-emerald-500 font-bold" : "text-text-main"
+                                        }`}>
+                                          {action.transactionType === "income" ? "+" : action.type === "create_transaction" ? "-" : ""}{symbol()}{action.amount?.toFixed(2)}
                                         </span>
                                       </Show>
                                     </div>
@@ -691,7 +784,19 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
                                       </div>
                                     </Show>
 
-                                    <div class="flex items-center justify-end gap-2 pt-1">
+                                    <Show when={action.type === "create_transaction"}>
+                                      <div class="flex flex-wrap items-center gap-1.5 text-[11px] pt-1">
+                                        <span class="px-2 py-0.5 rounded-md bg-card-subtle border border-card-border font-semibold text-primary">
+                                          {action.category || "General"}
+                                        </span>
+                                        <span class="text-text-muted">•</span>
+                                        <span class="text-text-muted">{getResolvedAccountName(action.account)}</span>
+                                        <span class="text-text-muted">•</span>
+                                        <span class="text-text-muted font-mono">{action.date || "Today"}</span>
+                                      </div>
+                                    </Show>
+
+                                    <div class="flex items-center justify-end gap-2 pt-1 border-t border-card-border/60">
                                       <Show
                                         when={isApplied()}
                                         fallback={
@@ -701,16 +806,19 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
                                             disabled={isBusy()}
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
                                           >
-                                            <Show when={isBusy()} fallback={<Check class="w-3.5 h-3.5" />}>
+                                            <Show
+                                              when={isBusy()}
+                                              fallback={action.type === "create_transaction" ? <Plus class="w-3.5 h-3.5" /> : <Check class="w-3.5 h-3.5" />}
+                                            >
                                               <Loader2 class="w-3.5 h-3.5 animate-spin" />
                                             </Show>
-                                            <span>Apply Change</span>
+                                            <span>{action.type === "create_transaction" ? "Add to Transactions" : "Apply Change"}</span>
                                           </button>
                                         }
                                       >
                                         <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
                                           <Check class="w-3.5 h-3.5" />
-                                          <span>Updated in Database</span>
+                                          <span>{action.type === "create_transaction" ? "Added to Transactions" : "Updated in Database"}</span>
                                         </span>
                                       </Show>
                                     </div>

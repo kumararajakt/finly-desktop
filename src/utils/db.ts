@@ -214,6 +214,21 @@ export async function insertAccount(
   return created;
 }
 
+export async function removeAccount(idOrName: string): Promise<boolean> {
+  if (isTauri()) {
+    try {
+      return await invoke<boolean>("delete_account", { idOrName });
+    } catch (err) {
+      console.error("Failed to delete account from SQLite:", err);
+    }
+  }
+
+  const current = await fetchAccounts();
+  const filtered = current.filter((a) => a.id !== idOrName && a.name !== idOrName);
+  localStorage.setItem("finly_accounts", JSON.stringify(filtered));
+  return true;
+}
+
 export async function fetchBudgets(): Promise<BudgetItem[]> {
   if (isTauri()) {
     try {

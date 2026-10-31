@@ -54,4 +54,6 @@ export { default as Send } from "lucide-solid/icons/send";
 export { default as Copy } from "lucide-solid/icons/copy";
 export { default as Lightbulb } from "lucide-solid/icons/lightbulb";
 export { default as ChevronRight } from "lucide-solid/icons/chevron-right";
+export { default as RotateCcw } from "lucide-solid/icons/rotate-ccw";
+
 

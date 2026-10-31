@@ -538,6 +538,15 @@ impl DbState {
         })
     }
 
+    pub fn delete_account(&self, id_or_name: &str) -> Result<bool, rusqlite::Error> {
+        let conn = self.conn.lock().unwrap();
+        let affected = conn.execute(
+            "DELETE FROM accounts WHERE id = ?1 OR name = ?1",
+            params![id_or_name],
+        )?;
+        Ok(affected > 0)
+    }
+
     pub fn get_accounts(&self) -> Result<Vec<Account>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(

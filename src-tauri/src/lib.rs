@@ -61,6 +61,11 @@ fn add_account(state: tauri::State<'_, DbState>, account: NewAccount) -> Result<
 }
 
 #[tauri::command]
+fn delete_account(state: tauri::State<'_, DbState>, id_or_name: String) -> Result<bool, String> {
+    state.delete_account(&id_or_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn get_setting(state: tauri::State<'_, DbState>, key: String) -> Result<Option<String>, String> {
     state.get_setting(&key).map_err(|e| e.to_string())
 }
@@ -114,6 +119,7 @@ pub fn run() {
             import_transactions,
             get_accounts,
             add_account,
+            delete_account,
             get_setting,
             set_setting,
             save_csv_file

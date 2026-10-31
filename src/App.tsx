@@ -38,6 +38,7 @@ import {
   getUserProfile,
   saveUserProfile,
   insertAccount,
+  removeAccount,
   fetchBudgets,
   saveBudgets,
   fetchCategories,
@@ -208,6 +209,15 @@ function App() {
       setAccounts(updatedAccounts);
     } catch (err) {
       console.error("Failed to delete transaction:", err);
+    }
+  };
+
+  const handleDeleteAccount = async (account: Account) => {
+    try {
+      await removeAccount(account.id);
+      setAccounts(accounts().filter((a) => a.id !== account.id));
+    } catch (err) {
+      console.error("Failed to delete account:", err);
     }
   };
 
@@ -415,6 +425,7 @@ function App() {
           setIsModalOpen(true);
         }}
         onOpenAddAccount={() => setIsAccountModalOpen(true)}
+        onDeleteAccount={handleDeleteAccount}
         onOpenSettings={() => {
           setSettingsTab("general");
           setIsSettingsOpen(true);
@@ -635,6 +646,7 @@ function App() {
           attachedTransactions={attachedTransactions()}
           onClearAttachedTransactions={() => setAttachedTransactions([])}
           onUpdateTransaction={handleUpdateTransactionFromAI}
+          onCreateTransaction={handleSaveTransaction}
           initialPrompt={askFinlyInitialPrompt()}
           currencySymbol={userProfile()?.currencySymbol}
           userName={userProfile()?.name}

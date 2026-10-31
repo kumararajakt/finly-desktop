@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Sparkles,
   MessageSquare,
+  Trash2,
 } from "./icons";
 import { Account, Transaction } from "../types/finance";
 
@@ -32,6 +33,7 @@ interface SidebarProps {
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
+  onDeleteAccount?: (account: Account) => Promise<void>;
   onOpenSettings?: () => void;
   onOpenAskFinly?: () => void;
 }
@@ -264,7 +266,7 @@ export const Sidebar: Component<SidebarProps> = (props) => {
             props.accounts.map((acc) => {
               const isNegative = acc.balance < 0;
               return (
-                <div class="flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-card-subtle transition-colors">
+                <div class="group flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-card-subtle transition-colors">
                   <div class="flex items-center gap-2.5 truncate">
                     {acc.type === "credit" ? (
                       <CreditCard class="w-3.5 h-3.5 text-text-subtle shrink-0" />
@@ -277,16 +279,33 @@ export const Sidebar: Component<SidebarProps> = (props) => {
                     )}
                     <span class="text-text-main font-medium truncate">{acc.name}</span>
                   </div>
-                  <span
-                    class={`font-semibold shrink-0 ml-2 ${
-                      isNegative ? "text-rose-500" : "text-text-main"
-                    }`}
-                  >
-                    {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
+                  <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                    <span
+                      class={`font-semibold ${
+                        isNegative ? "text-rose-500" : "text-text-main"
+                      }`}
+                    >
+                      {isNegative ? "-" : ""}{symbol()}{Math.abs(acc.balance).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    {props.onDeleteAccount && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Delete account "${acc.name}"?`)) {
+                            props.onDeleteAccount!(acc);
+                          }
+                        }}
+                        class="opacity-0 group-hover:opacity-100 p-0.5 text-text-subtle hover:text-rose-500 rounded transition-all cursor-pointer"
+                        title={`Delete ${acc.name}`}
+                      >
+                        <Trash2 class="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })
