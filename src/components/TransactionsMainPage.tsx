@@ -13,11 +13,12 @@ import {
   Upload,
   Receipt,
 } from "./icons";
-import { Transaction } from "../types/finance";
-import { parseTransactionsCSV } from "../utils/csv";
+import { Transaction, Account } from "../types/finance";
+import { ImportTransactionsModal } from "./ImportTransactionsModal";
 
 interface TransactionsMainPageProps {
   transactions: Transaction[];
+  accounts?: Account[];
   activeFilter: string;
   currencySymbol?: string;
   onFilterChange: (filter: string) => void;
@@ -32,6 +33,18 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
   const symbol = () => props.currencySymbol || "$";
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
+  const [importFile, setImportFile] = createSignal<{ fileName: string; text: string } | null>(null);
+
+  const handleCSVFilePicked = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setImportFile({ fileName: file.name, text });
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Compute metrics (transfers are asset/liability shifts, excluded from income/expense)
   const totalInflow = () =>
@@ -108,18 +121,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
               class="hidden"
               onChange={(e) => {
                 const file = e.currentTarget.files?.[0];
-                if (!file || !props.onImportCSV) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  const text = event.target?.result as string;
-                  if (text) {
-                    const parsed = parseTransactionsCSV(text);
-                    if (parsed.length > 0 && props.onImportCSV) {
-                      props.onImportCSV(parsed);
-                    }
-                  }
-                };
-                reader.readAsText(file);
+                if (file) handleCSVFilePicked(file);
                 e.currentTarget.value = "";
               }}
             />
@@ -347,18 +349,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                                 class="hidden"
                                 onChange={(e) => {
                                   const file = e.currentTarget.files?.[0];
-                                  if (!file || !props.onImportCSV) return;
-                                  const reader = new FileReader();
-                                  reader.onload = (event) => {
-                                    const text = event.target?.result as string;
-                                    if (text) {
-                                      const parsed = parseTransactionsCSV(text);
-                                      if (parsed.length > 0 && props.onImportCSV) {
-                                        props.onImportCSV(parsed);
-                                      }
-                                    }
-                                  };
-                                  reader.readAsText(file);
+                                  if (file) handleCSVFilePicked(file);
                                   e.currentTarget.value = "";
                                 }}
                               />
@@ -507,6 +498,23 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </table>
         </div>
       </div>
+
+      {/* CSV Import Review & Preview Modal */}
+      {importFile() && (
+        <ImportTransactionsModal
+          csvText={importFile()!.text}
+          fileName={importFile()!.fileName}
+          accounts={props.accounts || []}
+          currencySymbol={props.currencySymbol}
+          onClose={() => setImportFile(null)}
+          onImport={(imported) => {
+            if (props.onImportCSV) {
+              props.onImportCSV(imported);
+            }
+            setImportFile(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -30,3 +30,8 @@ export { default as ChevronDown } from "lucide-solid/icons/chevron-down";
 export { default as Pencil } from "lucide-solid/icons/pencil";
 export { default as TriangleAlert } from "lucide-solid/icons/triangle-alert";
 export { default as ArrowLeftRight } from "lucide-solid/icons/arrow-left-right";
+export { default as ArrowLeft } from "lucide-solid/icons/arrow-left";
+export { default as FileSpreadsheet } from "lucide-solid/icons/file-spreadsheet";
+export { default as Eye } from "lucide-solid/icons/eye";
+export { default as SlidersHorizontal } from "lucide-solid/icons/sliders-horizontal";
+export { default as CircleAlert } from "lucide-solid/icons/circle-alert";

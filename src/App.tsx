@@ -245,6 +245,7 @@ function App() {
       ) : (
         <TransactionsMainPage
           transactions={transactions()}
+          accounts={accounts()}
           activeFilter={activeFilter()}
           currencySymbol={userProfile()?.currencySymbol}
           onFilterChange={(filter) => setActiveFilter(filter)}
