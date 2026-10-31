@@ -4,13 +4,34 @@ import { X } from "./icons";
 interface AccountModalProps {
   currencySymbol?: string;
   onClose: () => void;
-  onSave: (account: { name: string; type: "checking" | "savings" | "credit" | "loan"; balance: number }) => void;
+  onSave: (account: {
+    name: string;
+    type: "checking" | "savings" | "credit" | "investment" | "loan";
+    balance: number;
+  }) => void;
 }
 
 export const AccountModal: Component<AccountModalProps> = (props) => {
   const [name, setName] = createSignal("");
-  const [type, setType] = createSignal<"checking" | "savings" | "credit" | "loan">("checking");
+  const [type, setType] = createSignal<
+    "checking" | "savings" | "credit" | "investment" | "loan"
+  >("checking");
   const [balance, setBalance] = createSignal("");
+
+  const placeholderText = () => {
+    switch (type()) {
+      case "investment":
+        return "e.g. Zerodha, Vanguard, Fidelity, 401(k)";
+      case "credit":
+        return "e.g. Chase Sapphire, SBI Credit Card";
+      case "loan":
+        return "e.g. Home Mortgage, Auto Loan";
+      case "savings":
+        return "e.g. Emergency Fund, High Yield Savings";
+      default:
+        return "e.g. HDFC Checking, ICICI Bank";
+    }
+  };
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
@@ -20,7 +41,10 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
     props.onSave({
       name: name().trim(),
       type: type(),
-      balance: type() === "credit" || type() === "loan" ? -Math.abs(parsedBalance) : parsedBalance,
+      balance:
+        type() === "credit" || type() === "loan"
+          ? -Math.abs(parsedBalance)
+          : parsedBalance,
     });
     props.onClose();
   };
@@ -47,7 +71,7 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
             <input
               type="text"
               required
-              placeholder="e.g. HDFC Checking, ICICI Bank"
+              placeholder={placeholderText()}
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
               class="w-full bg-card border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
@@ -65,6 +89,7 @@ export const AccountModal: Component<AccountModalProps> = (props) => {
             >
               <option value="checking" class="bg-card text-text-main">Checking / Bank Account</option>
               <option value="savings" class="bg-card text-text-main">Savings Account</option>
+              <option value="investment" class="bg-card text-text-main">Investment / Brokerage</option>
               <option value="credit" class="bg-card text-text-main">Credit Card</option>
               <option value="loan" class="bg-card text-text-main">Loan / Mortgage</option>
             </select>

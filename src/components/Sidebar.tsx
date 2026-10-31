@@ -14,6 +14,7 @@ import {
   Flag,
   Tags,
   HandCoins,
+  TrendingUp,
 } from "./icons";
 import { Account, Transaction } from "../types/finance";
 
@@ -242,6 +243,8 @@ export const Sidebar: Component<SidebarProps> = (props) => {
                       <CreditCard class="w-3.5 h-3.5 text-text-subtle shrink-0" />
                     ) : acc.type === "savings" ? (
                       <Wallet class="w-3.5 h-3.5 text-text-subtle shrink-0" />
+                    ) : acc.type === "investment" ? (
+                      <TrendingUp class="w-3.5 h-3.5 text-primary shrink-0" />
                     ) : (
                       <Building2 class="w-3.5 h-3.5 text-text-subtle shrink-0" />
                     )}

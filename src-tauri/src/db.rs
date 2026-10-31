@@ -204,8 +204,13 @@ impl DbState {
                 )?;
                 if updated == 0 {
                     let acc_id = Uuid::new_v4().to_string();
-                    let acc_type = if to_acc.to_lowercase().contains("credit") {
+                    let lower = to_acc.to_lowercase();
+                    let acc_type = if lower.contains("credit") {
                         "credit"
+                    } else if lower.contains("invest") || lower.contains("broker") || lower.contains("stock") || lower.contains("demat") || lower.contains("portfolio") {
+                        "investment"
+                    } else if lower.contains("saving") {
+                        "savings"
                     } else {
                         "checking"
                     };
@@ -230,8 +235,13 @@ impl DbState {
 
             if updated_rows == 0 {
                 let acc_id = Uuid::new_v4().to_string();
-                let acc_type = if new_tx.account.to_lowercase().contains("credit") {
+                let lower = new_tx.account.to_lowercase();
+                let acc_type = if lower.contains("credit") {
                     "credit"
+                } else if lower.contains("invest") || lower.contains("broker") || lower.contains("stock") || lower.contains("demat") || lower.contains("portfolio") {
+                    "investment"
+                } else if lower.contains("saving") {
+                    "savings"
                 } else {
                     "checking"
                 };
@@ -316,8 +326,13 @@ impl DbState {
                 )?;
                 if updated == 0 {
                     let acc_id = Uuid::new_v4().to_string();
-                    let acc_type = if to_acc.to_lowercase().contains("credit") {
+                    let lower = to_acc.to_lowercase();
+                    let acc_type = if lower.contains("credit") {
                         "credit"
+                    } else if lower.contains("invest") || lower.contains("broker") || lower.contains("stock") || lower.contains("demat") || lower.contains("portfolio") {
+                        "investment"
+                    } else if lower.contains("saving") {
+                        "savings"
                     } else {
                         "checking"
                     };
@@ -340,8 +355,13 @@ impl DbState {
 
             if updated_rows == 0 {
                 let acc_id = Uuid::new_v4().to_string();
-                let acc_type = if tx_data.account.to_lowercase().contains("credit") {
+                let lower = tx_data.account.to_lowercase();
+                let acc_type = if lower.contains("credit") {
                     "credit"
+                } else if lower.contains("invest") || lower.contains("broker") || lower.contains("stock") || lower.contains("demat") || lower.contains("portfolio") {
+                    "investment"
+                } else if lower.contains("saving") {
+                    "savings"
                 } else {
                     "checking"
                 };
@@ -478,8 +498,13 @@ impl DbState {
 
             if updated_rows == 0 {
                 let acc_id = Uuid::new_v4().to_string();
-                let acc_type = if new_tx.account.to_lowercase().contains("credit") {
+                let lower = new_tx.account.to_lowercase();
+                let acc_type = if lower.contains("credit") {
                     "credit"
+                } else if lower.contains("invest") || lower.contains("broker") || lower.contains("stock") || lower.contains("demat") || lower.contains("portfolio") {
+                    "investment"
+                } else if lower.contains("saving") {
+                    "savings"
                 } else {
                     "checking"
                 };

@@ -355,13 +355,17 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
                             <CreditCard class="w-4 h-4" />
                           ) : acc.type === "savings" ? (
                             <Wallet class="w-4 h-4" />
+                          ) : acc.type === "investment" ? (
+                            <TrendingUp class="w-4 h-4 text-primary" />
                           ) : (
                             <Building2 class="w-4 h-4" />
                           )}
                         </div>
                         <div>
                           <div class="font-semibold text-xs text-text-main">{acc.name}</div>
-                          <div class="text-[10px] text-text-muted capitalize">{acc.type} Account</div>
+                          <div class="text-[10px] text-text-muted capitalize">
+                            {acc.type === "investment" ? "Investment / Brokerage" : `${acc.type} Account`}
+                          </div>
                         </div>
                       </div>
 
