@@ -1,0 +1,35 @@
+app-id: com.kumar.finly-desktop
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+command: finly-desktop
+
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=x11
+  - --device=dri
+  - --share=network
+  - --filesystem=xdg-download
+
+modules:
+  - name: finly-desktop
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 finly-desktop /app/bin/finly-desktop
+      - install -Dm644 com.kumar.finly-desktop.desktop /app/share/applications/com.kumar.finly-desktop.desktop
+      - install -Dm644 com.kumar.finly-desktop.metainfo.xml /app/share/metainfo/com.kumar.finly-desktop.metainfo.xml
+      - install -Dm644 128x128.png /app/share/icons/hicolor/128x128/apps/com.kumar.finly-desktop.png
+      - install -Dm644 32x32.png /app/share/icons/hicolor/32x32/apps/com.kumar.finly-desktop.png
+    sources:
+      - type: file
+        path: ../src-tauri/target/release/finly-desktop
+      - type: file
+        path: com.kumar.finly-desktop.desktop
+      - type: file
+        path: com.kumar.finly-desktop.metainfo.xml
+      - type: file
+        path: ../src-tauri/icons/128x128.png
+      - type: file
+        path: ../src-tauri/icons/32x32.png

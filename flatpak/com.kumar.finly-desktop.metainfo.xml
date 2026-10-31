@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.kumar.finly-desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Finly</name>
+  <summary>Modern personal finance and transaction tracker</summary>
+  <description>
+    <p>
+      Finly is a modern, privacy-focused desktop application designed to help you take control of your financial life.
+      Track accounts, monitor daily transactions, categorize your expenses and income, configure budgets, and import bank statements with smart column detection.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>Interactive Dashboard with real-time cash flow metrics</li>
+      <li>Transaction Management with filtering, search, and category tracking</li>
+      <li>Smart CSV statement import with custom column mapping and multi-format amount parsing</li>
+      <li>Budget targets with visual threshold tracking</li>
+      <li>Custom category creation, editing, and reassignment</li>
+      <li>Light and dark theme support</li>
+      <li>Local SQLite database keeping all your personal data completely private</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">com.kumar.finly-desktop.desktop</launchable>
+  <categories>
+    <category>Office</category>
+    <category>Finance</category>
+  </categories>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-10-31">
+      <description>
+        <p>Initial release with dashboard, transaction management, category management, budget tracking, and CSV import.</p>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Finly
+GenericName=Personal Finance Tracker
+Comment=Modern personal finance, budget and transaction tracker
+Exec=finly-desktop
+Icon=com.kumar.finly-desktop
+Type=Application
+Terminal=false
+Categories=Office;Finance;
+StartupWMClass=finly-desktop
+Keywords=finance;money;budget;accounting;expenses;transactions;
+MimeType=text/csv;
