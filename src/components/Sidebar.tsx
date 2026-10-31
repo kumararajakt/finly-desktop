@@ -1,4 +1,4 @@
-import { Component } from "solid-js";
+import { Component, Show } from "solid-js";
 import {
   Receipt,
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
   Tags,
   HandCoins,
   TrendingUp,
+  Sparkles,
+  MessageSquare,
 } from "./icons";
 import { Account, Transaction } from "../types/finance";
 
@@ -25,11 +27,13 @@ interface SidebarProps {
   activeView: "dashboard" | "transactions" | "budgets" | "categories" | "loans";
   userName?: string;
   currencySymbol?: string;
+  isAiEnabled?: boolean;
   onSelectView: (view: "dashboard" | "transactions" | "budgets" | "categories" | "loans") => void;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
   onOpenSettings?: () => void;
+  onOpenAskFinly?: () => void;
 }
 
 export const Sidebar: Component<SidebarProps> = (props) => {
@@ -76,6 +80,29 @@ export const Sidebar: Component<SidebarProps> = (props) => {
           <Plus class="w-4 h-4" />
           <span>New Transaction</span>
         </button>
+
+        {/* Ask Finly AI Advisor Button (Only visible when AI is enabled) */}
+        <Show when={props.isAiEnabled}>
+          <button
+            type="button"
+            onClick={props.onOpenAskFinly}
+            class="w-full flex items-center justify-between p-2.5 rounded-xl bg-linear-to-r from-primary/10 via-primary/5 to-indigo-500/10 hover:from-primary/20 hover:to-indigo-500/20 border border-primary/25 hover:border-primary/50 transition-all cursor-pointer group shadow-2xs text-left"
+          >
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+                <Sparkles class="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <div class="font-bold text-xs text-text-main flex items-center gap-1.5 leading-tight">
+                  <span>Ask Finly</span>
+                  <span class="text-[9px] font-bold bg-primary text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">AI</span>
+                </div>
+                <div class="text-[10px] text-text-muted">Financial Advisor</div>
+              </div>
+            </div>
+            <MessageSquare class="w-3.5 h-3.5 text-text-subtle group-hover:text-primary transition-colors mr-0.5" />
+          </button>
+        </Show>
 
         {/* Primary App Views */}
         <div class="space-y-1">

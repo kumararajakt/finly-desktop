@@ -29,12 +29,13 @@ import { testAIConnection, fetchOllamaModels, fetchGeminiModels } from "../utils
 interface SettingsModalProps {
   currentProfile: UserProfile | null;
   currentTheme: ThemeMode;
+  initialTab?: "general" | "ai";
   onClose: () => void;
   onSave: (profile: UserProfile, theme: ThemeMode) => void;
 }
 
 export const SettingsModal: Component<SettingsModalProps> = (props) => {
-  const [activeTab, setActiveTab] = createSignal<"general" | "ai">("general");
+  const [activeTab, setActiveTab] = createSignal<"general" | "ai">(props.initialTab || "general");
 
   // Profile & Theme State
   const [name, setName] = createSignal(props.currentProfile?.name || "");
@@ -64,6 +65,9 @@ export const SettingsModal: Component<SettingsModalProps> = (props) => {
       if (cfg.provider === "ollama") {
         const models = await fetchOllamaModels(cfg.ollamaEndpoint);
         setDetectedOllamaModels(models);
+        if (models.length > 0 && !models.includes(cfg.ollamaModel)) {
+          setAiConfig((prev) => ({ ...prev, ollamaModel: models[0] }));
+        }
       } else if (cfg.provider === "gemini" && cfg.geminiApiKey) {
         const geminiModels = await fetchGeminiModels(cfg.geminiApiKey);
         setDetectedGeminiModels(geminiModels);
@@ -117,6 +121,9 @@ export const SettingsModal: Component<SettingsModalProps> = (props) => {
       if (res.availableModels && res.availableModels.length > 0) {
         if (aiConfig().provider === "ollama") {
           setDetectedOllamaModels(res.availableModels);
+          if (!res.availableModels.includes(aiConfig().ollamaModel)) {
+            updateAIField("ollamaModel", res.availableModels[0]);
+          }
         } else if (aiConfig().provider === "gemini") {
           setDetectedGeminiModels(res.availableModels);
           if (!res.availableModels.includes(aiConfig().geminiModel)) {
@@ -137,6 +144,9 @@ export const SettingsModal: Component<SettingsModalProps> = (props) => {
 
     // 1. Save AI Config
     await saveAIConfig(aiConfig());
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("finly:ai_config_updated"));
+    }
 
     // 2. Save Profile & Theme
     const curr = detectedCurrency();
@@ -351,7 +361,12 @@ export const SettingsModal: Component<SettingsModalProps> = (props) => {
                     return (
                       <button
                         type="button"
-                        onClick={() => updateAIField("provider", prov.id)}
+                        onClick={() => {
+                          updateAIField("provider", prov.id);
+                          if (prov.id === "ollama") {
+                            handleDetectOllama();
+                          }
+                        }}
                         class={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                           isSelected()
                             ? "border-primary bg-primary-light text-primary ring-1 ring-primary shadow-xs"

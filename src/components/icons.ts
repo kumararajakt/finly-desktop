@@ -49,3 +49,9 @@ export { default as Bot } from "lucide-solid/icons/bot";
 export { default as Loader2 } from "lucide-solid/icons/loader-circle";
 export { default as LoaderCircle } from "lucide-solid/icons/loader-circle";
 export { default as RefreshCw } from "lucide-solid/icons/refresh-cw";
+export { default as MessageSquare } from "lucide-solid/icons/message-square";
+export { default as Send } from "lucide-solid/icons/send";
+export { default as Copy } from "lucide-solid/icons/copy";
+export { default as Lightbulb } from "lucide-solid/icons/lightbulb";
+export { default as ChevronRight } from "lucide-solid/icons/chevron-right";
+

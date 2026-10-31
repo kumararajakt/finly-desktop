@@ -19,6 +19,7 @@ import {
   X,
   Download,
   Check,
+  Sparkles,
 } from "./icons";
 import { Transaction, Account, CategoryItem } from "../types/finance";
 import { ImportTransactionsModal } from "./ImportTransactionsModal";
@@ -30,18 +31,21 @@ interface TransactionsMainPageProps {
   categories?: CategoryItem[];
   activeFilter: string;
   currencySymbol?: string;
+  isAiEnabled?: boolean;
   onFilterChange: (filter: string) => void;
   onOpenAddTransaction: () => void;
   onEditTransaction: (tx: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
   onToggleFlagTransaction: (id: string) => void;
   onImportCSV?: (transactions: Omit<Transaction, "id">[]) => void;
+  onOpenAskFinly?: (initialPrompt?: string, selectedTransactions?: Transaction[]) => void;
 }
 
 export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props) => {
   const symbol = () => props.currencySymbol || "$";
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
+  const [selectedTxIds, setSelectedTxIds] = createSignal<string[]>([]);
   const [importFile, setImportFile] = createSignal<{ fileName: string; text: string } | null>(null);
 
   // Advanced Filters State
@@ -716,7 +720,24 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           <table class="w-full text-left text-xs text-text-main border-collapse">
             <thead class="sticky top-0 z-10 bg-card-subtle shadow-[0_1px_0_0_var(--color-card-border)] select-none">
               <tr class="text-[11px] font-bold text-text-muted uppercase tracking-wider bg-card-subtle">
-                <th class="py-3 px-4 w-10 text-center sticky top-0 bg-card-subtle">#</th>
+                <th class="py-3 px-3 w-10 text-center sticky top-0 bg-card-subtle">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredTransactions().length > 0 &&
+                      filteredTransactions().every((t) => selectedTxIds().includes(t.id))
+                    }
+                    onChange={(e) => {
+                      if (e.currentTarget.checked) {
+                        setSelectedTxIds(filteredTransactions().map((t) => t.id));
+                      } else {
+                        setSelectedTxIds([]);
+                      }
+                    }}
+                    class="rounded border-card-border text-primary focus:ring-primary cursor-pointer w-3.5 h-3.5 accent-primary"
+                    title="Select all filtered transactions"
+                  />
+                </th>
 
                 {/* Sortable Date Header */}
                 <th
@@ -896,7 +917,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                   </tr>
                 }
               >
-                {(tx, idx) => {
+                {(tx) => {
                   const isSelected = () => selectedTxId() === tx.id;
                   const isTransfer = tx.type === "transfer";
                   const isIncome = !isTransfer && tx.amount > 0;
@@ -911,11 +932,23 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                           : "hover:bg-card-subtle"
                       }`}
                     >
-                      <td class="py-3.5 px-4 text-center text-text-subtle relative">
+                      <td class="py-3.5 px-3 text-center text-text-subtle relative" onClick={(e) => e.stopPropagation()}>
                         {isSelected() && (
                           <span class="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r"></span>
                         )}
-                        {idx() + 1}
+                        <input
+                          type="checkbox"
+                          checked={selectedTxIds().includes(tx.id)}
+                          onChange={(e) => {
+                            const isChecked = e.currentTarget.checked;
+                            if (isChecked) {
+                              setSelectedTxIds((prev) => [...prev, tx.id]);
+                            } else {
+                              setSelectedTxIds((prev) => prev.filter((id) => id !== tx.id));
+                            }
+                          }}
+                          class="rounded border-card-border text-primary focus:ring-primary cursor-pointer w-3.5 h-3.5 accent-primary"
+                        />
                       </td>
 
                       <td class="py-3.5 px-4 text-text-muted whitespace-nowrap">
@@ -995,6 +1028,21 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td class="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div class="flex items-center justify-end gap-1">
+                          <Show when={props.isAiEnabled && props.onOpenAskFinly}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                props.onOpenAskFinly?.(
+                                  `Can you review this transaction at ${tx.payee} for ${symbol()}${Math.abs(tx.amount).toFixed(2)} and verify if '${tx.category}' is the right category?`,
+                                  [tx]
+                                );
+                              }}
+                              class="p-1.5 rounded-lg text-text-subtle hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                              title="Ask Finly about this transaction"
+                            >
+                              <Sparkles class="w-3.5 h-3.5" />
+                            </button>
+                          </Show>
                           <button
                             type="button"
                             onClick={() => props.onEditTransaction(tx)}
@@ -1033,6 +1081,40 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </table>
         </div>
       </div>
+
+      {/* Floating Selection Action Bar */}
+      <Show when={selectedTxIds().length > 0}>
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-primary/30 shadow-2xl rounded-2xl px-5 py-2.5 flex items-center gap-3.5 z-30 animate-in fade-in slide-in-from-bottom duration-200">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span class="text-xs font-bold text-text-main">
+              {selectedTxIds().length} transaction{selectedTxIds().length > 1 ? "s" : ""} selected
+            </span>
+          </div>
+
+          <Show when={props.isAiEnabled && props.onOpenAskFinly}>
+            <button
+              type="button"
+              onClick={() => {
+                const sel = props.transactions.filter((t) => selectedTxIds().includes(t.id));
+                props.onOpenAskFinly?.(undefined, sel);
+              }}
+              class="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+            >
+              <Sparkles class="w-3.5 h-3.5" />
+              <span>Ask Finly About Selected</span>
+            </button>
+          </Show>
+
+          <button
+            type="button"
+            onClick={() => setSelectedTxIds([])}
+            class="text-xs text-text-muted hover:text-text-main px-2 py-1 rounded-lg hover:bg-card-subtle transition-colors cursor-pointer"
+          >
+            Clear
+          </button>
+        </div>
+      </Show>
 
       {/* CSV Import Review & Preview Modal */}
       {importFile() && (

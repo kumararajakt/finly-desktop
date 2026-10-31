@@ -60,10 +60,11 @@ export async function testAIConnection(config: AIConfig): Promise<AITestResult> 
           };
         }
 
+        const activeModel = models.includes(config.ollamaModel) ? config.ollamaModel : models[0];
         return {
           success: true,
           latencyMs,
-          message: `Connected to Ollama! Found ${models.length} installed model(s).`,
+          message: `Connected to Ollama! Found ${models.length} installed model(s): ${models.join(", ")}. Using '${activeModel}'.`,
           availableModels: models,
         };
       }
@@ -276,7 +277,30 @@ export async function fetchGeminiModels(apiKey: string): Promise<string[]> {
 
 async function callOllama(messages: AIMessage[], config: AIConfig): Promise<string> {
   const endpoint = (config.ollamaEndpoint || "http://localhost:11434").replace(/\/$/, "");
-  const model = config.ollamaModel || "llama3.2";
+  let model = config.ollamaModel || "llama3.2";
+
+  // Check if target model exists in installed models, or auto-fallback to user's installed model
+  try {
+    const installed = await fetchOllamaModels(endpoint);
+    if (installed.length > 0) {
+      const match = installed.find(
+        (m) =>
+          m === model ||
+          m === `${model}:latest` ||
+          `${m}:latest` === model ||
+          m.toLowerCase().startsWith(model.toLowerCase()) ||
+          model.toLowerCase().startsWith(m.toLowerCase())
+      );
+      if (match) {
+        model = match;
+      } else {
+        // Requested model not installed; fallback to the first installed model (e.g. qwen3.5:4b)
+        model = installed[0];
+      }
+    }
+  } catch {
+    // If tags check fails, attempt call with configured model
+  }
 
   const res = await fetch(`${endpoint}/api/chat`, {
     method: "POST",
@@ -285,6 +309,12 @@ async function callOllama(messages: AIMessage[], config: AIConfig): Promise<stri
       model,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       stream: false,
+      think: false,
+      thinking: false,
+      options: {
+        num_predict: 2048,
+        temperature: 0.7,
+      },
     }),
   });
 
@@ -294,7 +324,15 @@ async function callOllama(messages: AIMessage[], config: AIConfig): Promise<stri
   }
 
   const data = await res.json();
-  return data.message?.content || "";
+  let content = data.message?.content || "";
+  // Strip reasoning / think tags from thinking models (e.g. Qwen or DeepSeek) if present in content
+  content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
+  if (!content.trim()) {
+    throw new Error("Ollama returned an empty response. Please verify the model is loaded and try again.");
+  }
+
+  return content;
 }
 
 async function callGemini(messages: AIMessage[], config: AIConfig): Promise<string> {

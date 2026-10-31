@@ -1,4 +1,4 @@
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onMount, onCleanup } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardPage } from "./components/DashboardPage";
 import { BudgetPage } from "./components/BudgetPage";
@@ -14,6 +14,8 @@ import { LoanModal } from "./components/LoanModal";
 import { LoanPaymentModal } from "./components/LoanPaymentModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { SettingsModal } from "./components/SettingsModal";
+import { AskFinlyDrawer } from "./components/AskFinlyDrawer";
+import { getAIConfig } from "./utils/ai/storage";
 import {
   Account,
   Transaction,
@@ -63,6 +65,11 @@ function App() {
   const [isLoanModalOpen, setIsLoanModalOpen] = createSignal(false);
   const [repayingLoan, setRepayingLoan] = createSignal<LoanRecord | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
+  const [settingsTab, setSettingsTab] = createSignal<"general" | "ai">("general");
+  const [isAskFinlyOpen, setIsAskFinlyOpen] = createSignal(false);
+  const [isAiEnabled, setIsAiEnabled] = createSignal(false);
+  const [attachedTransactions, setAttachedTransactions] = createSignal<Transaction[]>([]);
+  const [askFinlyInitialPrompt, setAskFinlyInitialPrompt] = createSignal<string>("");
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
   const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions" | "budgets" | "categories" | "loans">("dashboard");
@@ -114,9 +121,33 @@ function App() {
 
       setAccounts(loadedAccounts);
       setTransactions(loadedTransactions);
+
+      // Sync AI enabled status
+      const syncAI = async () => {
+        try {
+          const cfg = await getAIConfig();
+          setIsAiEnabled(cfg.enabled);
+          if (!cfg.enabled) {
+            setIsAskFinlyOpen(false);
+          }
+        } catch {
+          setIsAiEnabled(false);
+        }
+      };
+      await syncAI();
+
+      if (typeof window !== "undefined") {
+        window.addEventListener("finly:ai_config_updated", syncAI);
+      }
     } catch (err) {
       console.error("Error loading SQLite database records:", err);
       setShowOnboarding(true);
+    }
+  });
+
+  onCleanup(() => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("finly:ai_config_updated", () => {});
     }
   });
 
@@ -138,6 +169,12 @@ function App() {
       ]);
       setUserProfile(profile);
       setCurrentTheme(theme);
+
+      const cfg = await getAIConfig();
+      setIsAiEnabled(cfg.enabled);
+      if (!cfg.enabled) {
+        setIsAskFinlyOpen(false);
+      }
     } catch (err) {
       console.error("Failed to save settings:", err);
     }
@@ -184,6 +221,24 @@ function App() {
       );
     } catch (err) {
       console.error("Failed to toggle transaction flag:", err);
+    }
+  };
+
+  const handleOpenAskFinly = (prompt?: string, txs?: Transaction[]) => {
+    setAskFinlyInitialPrompt(prompt || "");
+    setAttachedTransactions(txs || []);
+    setIsAskFinlyOpen(true);
+  };
+
+  const handleUpdateTransactionFromAI = async (updated: Transaction) => {
+    try {
+      const saved = await updateExistingTransaction(updated);
+      setTransactions(transactions().map((t) => (t.id === saved.id ? saved : t)));
+      setAttachedTransactions(
+        attachedTransactions().map((t) => (t.id === saved.id ? saved : t))
+      );
+    } catch (err) {
+      console.error("Failed to update transaction from AI action:", err);
     }
   };
 
@@ -349,6 +404,7 @@ function App() {
         activeView={currentView()}
         userName={userProfile()?.name}
         currencySymbol={userProfile()?.currencySymbol}
+        isAiEnabled={isAiEnabled()}
         onSelectView={(view) => setCurrentView(view)}
         onSelectFilter={(filter) => {
           setActiveFilter(filter);
@@ -359,7 +415,11 @@ function App() {
           setIsModalOpen(true);
         }}
         onOpenAddAccount={() => setIsAccountModalOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => {
+          setSettingsTab("general");
+          setIsSettingsOpen(true);
+        }}
+        onOpenAskFinly={() => handleOpenAskFinly()}
       />
 
       {/* Main Page Area */}
@@ -438,6 +498,7 @@ function App() {
           categories={categories()}
           activeFilter={activeFilter()}
           currencySymbol={userProfile()?.currencySymbol}
+          isAiEnabled={isAiEnabled()}
           onFilterChange={(filter) => setActiveFilter(filter)}
           onOpenAddTransaction={() => {
             setEditingTransaction(null);
@@ -450,6 +511,7 @@ function App() {
           onDeleteTransaction={handleDeleteTransaction}
           onToggleFlagTransaction={handleToggleFlag}
           onImportCSV={handleImportCSV}
+          onOpenAskFinly={handleOpenAskFinly}
         />
       )}
 
@@ -550,8 +612,32 @@ function App() {
         <SettingsModal
           currentProfile={userProfile()}
           currentTheme={currentTheme()}
+          initialTab={settingsTab()}
           onClose={() => setIsSettingsOpen(false)}
           onSave={handleSaveSettings}
+        />
+      )}
+
+      {/* "Ask Finly" Conversational Financial Advisor Drawer (Only rendered when AI is enabled) */}
+      {isAiEnabled() && (
+        <AskFinlyDrawer
+          isOpen={isAskFinlyOpen()}
+          onClose={() => setIsAskFinlyOpen(false)}
+          onOpenSettings={() => {
+            setSettingsTab("ai");
+            setIsSettingsOpen(true);
+          }}
+          accounts={accounts()}
+          budgets={budgets()}
+          transactions={transactions()}
+          categories={categories()}
+          loans={loans()}
+          attachedTransactions={attachedTransactions()}
+          onClearAttachedTransactions={() => setAttachedTransactions([])}
+          onUpdateTransaction={handleUpdateTransactionFromAI}
+          initialPrompt={askFinlyInitialPrompt()}
+          currencySymbol={userProfile()?.currencySymbol}
+          userName={userProfile()?.name}
         />
       )}
 
