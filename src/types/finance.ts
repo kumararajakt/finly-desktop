@@ -40,3 +40,15 @@ export interface BudgetItem {
   period?: "monthly" | "yearly";
   color?: string;
 }
+
+export type CategoryType = "expense" | "income" | "both";
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  color: string;
+  type: CategoryType;
+  icon?: string;
+  description?: string;
+  isDefault?: boolean;
+}

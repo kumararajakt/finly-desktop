@@ -2,13 +2,16 @@ import { createSignal, onMount } from "solid-js";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardPage } from "./components/DashboardPage";
 import { BudgetPage } from "./components/BudgetPage";
+import { CategoryPage } from "./components/CategoryPage";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
 import { AccountModal } from "./components/AccountModal";
 import { BudgetModal } from "./components/BudgetModal";
+import { CategoryModal } from "./components/CategoryModal";
+import { DeleteCategoryModal } from "./components/DeleteCategoryModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { Account, Transaction, UserProfile, ThemeMode, BudgetItem } from "./types/finance";
+import { Account, Transaction, UserProfile, ThemeMode, BudgetItem, CategoryItem } from "./types/finance";
 import { applyTheme, getStoredTheme, setStoredTheme } from "./utils/theme";
 import {
   fetchAccounts,
@@ -23,6 +26,9 @@ import {
   insertAccount,
   fetchBudgets,
   saveBudgets,
+  fetchCategories,
+  saveCategories,
+  reassignCategoryTransactions,
 } from "./utils/db";
 import "./App.css";
 
@@ -32,30 +38,36 @@ function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = createSignal(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = createSignal(false);
   const [editingBudget, setEditingBudget] = createSignal<BudgetItem | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = createSignal(false);
+  const [editingCategory, setEditingCategory] = createSignal<CategoryItem | null>(null);
+  const [deletingCategory, setDeletingCategory] = createSignal<CategoryItem | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
-  const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions" | "budgets">("dashboard");
+  const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions" | "budgets" | "categories">("dashboard");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
   const [budgets, setBudgets] = createSignal<BudgetItem[]>([]);
+  const [categories, setCategories] = createSignal<CategoryItem[]>([]);
   const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
   const [currentTheme, setCurrentTheme] = createSignal<ThemeMode>("auto");
 
   // Load persisted SQLite data, theme, and user profile on launch
   onMount(async () => {
     try {
-      const [loadedProfile, loadedAccounts, loadedTransactions, loadedTheme, loadedBudgets] = await Promise.all([
+      const [loadedProfile, loadedAccounts, loadedTransactions, loadedTheme, loadedBudgets, loadedCategories] = await Promise.all([
         getUserProfile(),
         fetchAccounts(),
         fetchTransactions(),
         getStoredTheme(),
         fetchBudgets(),
+        fetchCategories(),
       ]);
 
       setCurrentTheme(loadedTheme);
       applyTheme(loadedTheme);
       setBudgets(loadedBudgets);
+      setCategories(loadedCategories);
 
       if (loadedProfile) {
         setUserProfile(loadedProfile);
@@ -184,6 +196,50 @@ function App() {
     await saveBudgets(updated);
   };
 
+  const handleSaveCategory = async (item: CategoryItem) => {
+    const current = categories();
+    const existingIndex = current.findIndex((c) => c.id === item.id);
+    let updated: CategoryItem[];
+
+    if (existingIndex >= 0) {
+      const oldCat = current[existingIndex];
+      updated = current.map((c) => (c.id === item.id ? item : c));
+      // If name or color changed, update matching transactions
+      if (oldCat.name !== item.name || oldCat.color !== item.color) {
+        await reassignCategoryTransactions(oldCat.name, item.name, item.color);
+        const refreshedTxs = await fetchTransactions();
+        setTransactions(refreshedTxs);
+      }
+    } else {
+      updated = [...current, item];
+    }
+
+    setCategories(updated);
+    await saveCategories(updated);
+    setIsCategoryModalOpen(false);
+    setEditingCategory(null);
+  };
+
+  const handleDeleteCategory = async (id: string, reassignToCatName?: string) => {
+    const catToDelete = categories().find((c) => c.id === id);
+    if (!catToDelete) return;
+
+    if (reassignToCatName) {
+      const targetCat = categories().find(
+        (c) => c.name.toLowerCase() === reassignToCatName.toLowerCase()
+      );
+      const targetColor = targetCat?.color || "#64748b";
+      await reassignCategoryTransactions(catToDelete.name, reassignToCatName, targetColor);
+      const refreshedTxs = await fetchTransactions();
+      setTransactions(refreshedTxs);
+    }
+
+    const updated = categories().filter((c) => c.id !== id);
+    setCategories(updated);
+    await saveCategories(updated);
+    setDeletingCategory(null);
+  };
+
   return (
     <div class="flex h-screen w-screen overflow-hidden bg-canvas font-sans text-text-main">
       {/* Sidebar with Transactions Navigation & Accounts */}
@@ -242,6 +298,27 @@ function App() {
             setCurrentView("transactions");
           }}
         />
+      ) : currentView() === "categories" ? (
+        <CategoryPage
+          categories={categories()}
+          transactions={transactions()}
+          currencySymbol={userProfile()?.currencySymbol}
+          onOpenAddCategory={() => {
+            setEditingCategory(null);
+            setIsCategoryModalOpen(true);
+          }}
+          onEditCategory={(cat) => {
+            setEditingCategory(cat);
+            setIsCategoryModalOpen(true);
+          }}
+          onDeleteCategory={(cat) => {
+            setDeletingCategory(cat);
+          }}
+          onNavigateToTransactions={() => {
+            setActiveFilter("all");
+            setCurrentView("transactions");
+          }}
+        />
       ) : (
         <TransactionsMainPage
           transactions={transactions()}
@@ -268,6 +345,7 @@ function App() {
         <TransactionModal
           transaction={editingTransaction()}
           accounts={accounts()}
+          categories={categories()}
           currencySymbol={userProfile()?.currencySymbol}
           onClose={() => {
             setIsModalOpen(false);
@@ -290,12 +368,45 @@ function App() {
       {isBudgetModalOpen() && (
         <BudgetModal
           budget={editingBudget()}
+          categories={categories()}
           currencySymbol={userProfile()?.currencySymbol}
           onClose={() => {
             setIsBudgetModalOpen(false);
             setEditingBudget(null);
           }}
           onSave={handleSaveBudget}
+        />
+      )}
+
+      {/* Category Create / Edit Modal */}
+      {isCategoryModalOpen() && (
+        <CategoryModal
+          category={editingCategory()}
+          existingCategories={categories()}
+          onClose={() => {
+            setIsCategoryModalOpen(false);
+            setEditingCategory(null);
+          }}
+          onSave={handleSaveCategory}
+        />
+      )}
+
+      {/* Category Delete & Reassignment Dialog */}
+      {deletingCategory() && (
+        <DeleteCategoryModal
+          category={deletingCategory()!}
+          allCategories={categories()}
+          affectedCount={
+            transactions().filter(
+              (t) =>
+                t.category.toLowerCase().trim() ===
+                deletingCategory()!.name.toLowerCase().trim()
+            ).length
+          }
+          onClose={() => setDeletingCategory(null)}
+          onConfirmDelete={(reassignToCatName) =>
+            handleDeleteCategory(deletingCategory()!.id, reassignToCatName)
+          }
         />
       )}
 

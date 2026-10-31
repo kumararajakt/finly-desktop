@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Account, Transaction, UserProfile, BudgetItem } from "../types/finance";
+import { Account, Transaction, UserProfile, BudgetItem, CategoryItem } from "../types/finance";
 
 // Detect if we are running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -219,4 +219,87 @@ export async function saveBudgets(budgets: BudgetItem[]): Promise<void> {
   }
 
   localStorage.setItem("finly_budgets", JSON.stringify(budgets));
+}
+
+export const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { id: "cat-housing", name: "Housing", color: "#2563eb", type: "expense", description: "Rent, mortgage, and home maintenance", isDefault: true },
+  { id: "cat-groceries", name: "Groceries", color: "#10b981", type: "expense", description: "Food, household essentials, supermarkets", isDefault: true },
+  { id: "cat-dining", name: "Dining Out", color: "#f59e0b", type: "expense", description: "Restaurants, cafes, food delivery", isDefault: true },
+  { id: "cat-transport", name: "Transportation", color: "#8b5cf6", type: "expense", description: "Gas, transit, flights, rideshare", isDefault: true },
+  { id: "cat-utilities", name: "Utilities", color: "#06b6d4", type: "expense", description: "Electricity, water, internet, phone", isDefault: true },
+  { id: "cat-salary", name: "Salary", color: "#10b981", type: "income", description: "Employment income, payroll, wages", isDefault: true },
+  { id: "cat-entertainment", name: "Entertainment", color: "#ec4899", type: "expense", description: "Movies, games, streaming services", isDefault: true },
+  { id: "cat-healthcare", name: "Healthcare", color: "#ef4444", type: "expense", description: "Doctor visits, prescriptions, medical care", isDefault: true },
+  { id: "cat-shopping", name: "Shopping", color: "#f97316", type: "expense", description: "Clothing, gadgets, retail purchases", isDefault: true },
+  { id: "cat-travel", name: "Travel", color: "#14b8a6", type: "expense", description: "Hotels, vacations, travel bookings", isDefault: true },
+  { id: "cat-education", name: "Education", color: "#6366f1", type: "expense", description: "Tuition, courses, books, learning", isDefault: true },
+  { id: "cat-investment", name: "Investments", color: "#0ea5e9", type: "both", description: "Dividends, returns, capital gains", isDefault: true },
+  { id: "cat-other", name: "Other", color: "#64748b", type: "both", description: "Miscellaneous expenses and income", isDefault: true },
+];
+
+export async function fetchCategories(): Promise<CategoryItem[]> {
+  if (isTauri()) {
+    try {
+      const json = await invoke<string | null>("get_setting", { key: "user_categories" });
+      if (json) {
+        const parsed = JSON.parse(json);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (err) {
+      console.error("Failed to load categories from SQLite:", err);
+    }
+  }
+
+  const local = localStorage.getItem("finly_categories");
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fallback to defaults
+    }
+  }
+
+  // Seed default categories if none exist
+  await saveCategories(DEFAULT_CATEGORIES);
+  return DEFAULT_CATEGORIES;
+}
+
+export async function saveCategories(categories: CategoryItem[]): Promise<void> {
+  if (isTauri()) {
+    try {
+      await invoke("set_setting", {
+        key: "user_categories",
+        value: JSON.stringify(categories),
+      });
+      return;
+    } catch (err) {
+      console.error("Failed to save categories to SQLite:", err);
+    }
+  }
+
+  localStorage.setItem("finly_categories", JSON.stringify(categories));
+}
+
+export async function reassignCategoryTransactions(
+  oldCatName: string,
+  newCatName: string,
+  newColor: string
+): Promise<number> {
+  const allTxs = await fetchTransactions();
+  const normalizedOld = oldCatName.toLowerCase().trim();
+  const affected = allTxs.filter((t) => t.category.toLowerCase().trim() === normalizedOld);
+
+  if (affected.length === 0) return 0;
+
+  for (const tx of affected) {
+    const updated: Transaction = {
+      ...tx,
+      category: newCatName,
+      categoryColor: newColor,
+    };
+    await updateExistingTransaction(updated);
+  }
+
+  return affected.length;
 }

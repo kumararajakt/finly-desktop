@@ -35,3 +35,5 @@ export { default as FileSpreadsheet } from "lucide-solid/icons/file-spreadsheet"
 export { default as Eye } from "lucide-solid/icons/eye";
 export { default as SlidersHorizontal } from "lucide-solid/icons/sliders-horizontal";
 export { default as CircleAlert } from "lucide-solid/icons/circle-alert";
+export { default as Tag } from "lucide-solid/icons/tag";
+export { default as Tags } from "lucide-solid/icons/tags";

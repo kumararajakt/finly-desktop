@@ -1,10 +1,11 @@
 import { Component, createSignal, For } from "solid-js";
 import { X } from "./icons";
-import { Account, Transaction, TransactionType } from "../types/finance";
+import { Account, Transaction, TransactionType, CategoryItem } from "../types/finance";
 
 interface TransactionModalProps {
   transaction?: Transaction | null;
   accounts: Account[];
+  categories?: CategoryItem[];
   currencySymbol?: string;
   onClose: () => void;
   onSave: (tx: Omit<Transaction, "id">, id?: string) => void;
@@ -13,7 +14,7 @@ interface TransactionModalProps {
 export const TransactionModal: Component<TransactionModalProps> = (props) => {
   const isEditing = () => !!props.transaction;
 
-  const standardCategories = [
+  const defaultCategoryList = [
     { name: "Housing", color: "#2563eb" },
     { name: "Groceries", color: "#10b981" },
     { name: "Dining Out", color: "#f59e0b" },
@@ -29,7 +30,11 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
   ];
 
   const allCategories = () => {
-    const list = [...standardCategories];
+    const base = props.categories && props.categories.length > 0
+      ? props.categories.map((c) => ({ name: c.name, color: c.color }))
+      : defaultCategoryList;
+
+    const list = [...base];
     const txCat = props.transaction?.category;
     if (txCat && !list.some((c) => c.name.toLowerCase() === txCat.toLowerCase())) {
       list.unshift({
@@ -42,11 +47,11 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
 
   const getInitialCategory = () => {
     const txCat = props.transaction?.category;
-    if (!txCat) return "Groceries";
-    const found = standardCategories.find(
-      (c) => c.name.toLowerCase() === txCat.toLowerCase()
-    );
-    return found ? found.name : txCat;
+    if (txCat) return txCat;
+    if (props.categories && props.categories.length > 0) {
+      return props.categories[0].name;
+    }
+    return "Groceries";
   };
 
   const allAccounts = () => {

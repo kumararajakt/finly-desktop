@@ -1,9 +1,10 @@
 import { Component, createSignal, For } from "solid-js";
 import { X, Check } from "./icons";
-import { BudgetItem } from "../types/finance";
+import { BudgetItem, CategoryItem } from "../types/finance";
 
 interface BudgetModalProps {
   budget?: BudgetItem | null;
+  categories?: CategoryItem[];
   currencySymbol?: string;
   onClose: () => void;
   onSave: (item: BudgetItem) => void;
@@ -18,7 +19,7 @@ export const BudgetModal: Component<BudgetModalProps> = (props) => {
   const [limit, setLimit] = createSignal(props.budget ? String(props.budget.limit) : "500");
   const [selectedColor, setSelectedColor] = createSignal(props.budget?.color || "#10b981");
 
-  const standardCategories = [
+  const defaultStandardCategories = [
     { name: "Housing", defaultColor: "#2563eb" },
     { name: "Groceries", defaultColor: "#10b981" },
     { name: "Dining Out", defaultColor: "#f59e0b" },
@@ -31,6 +32,16 @@ export const BudgetModal: Component<BudgetModalProps> = (props) => {
     { name: "Education", defaultColor: "#6366f1" },
     { name: "Other", defaultColor: "#64748b" },
   ];
+
+  const standardCategories = () => {
+    if (props.categories && props.categories.length > 0) {
+      return props.categories.map((c) => ({
+        name: c.name,
+        defaultColor: c.color,
+      }));
+    }
+    return defaultStandardCategories;
+  };
 
   const colorPalette = [
     "#2563eb", // blue
@@ -48,7 +59,7 @@ export const BudgetModal: Component<BudgetModalProps> = (props) => {
 
   const handleCategorySelect = (catName: string) => {
     setCategory(catName);
-    const matched = standardCategories.find((c) => c.name === catName);
+    const matched = standardCategories().find((c) => c.name === catName);
     if (matched && !props.budget) {
       setSelectedColor(matched.defaultColor);
     }
@@ -114,7 +125,7 @@ export const BudgetModal: Component<BudgetModalProps> = (props) => {
                 disabled={isEditing()}
                 class="w-full bg-card border border-card-border rounded-xl px-3.5 pr-9 py-2 text-xs font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none disabled:opacity-60"
               >
-                <For each={standardCategories}>
+                <For each={standardCategories()}>
                   {(cat) => (
                     <option value={cat.name} class="bg-card text-text-main">
                       {cat.name}
