@@ -1,4 +1,4 @@
-import { Transaction, Account } from "../types/finance";
+import { Transaction, Account, CategoryItem } from "../types/finance";
 
 export type AmountMode = "single" | "double" | "type_column";
 
@@ -50,6 +50,7 @@ export interface ParsedTransactionRow {
   selected: boolean;
   isValid: boolean;
   error?: string;
+  isNewCategory?: boolean;
   transaction: Omit<Transaction, "id">;
   rawRow: string[];
 }
@@ -62,6 +63,8 @@ export interface ImportSummary {
   totalIncome: number;
   totalExpense: number;
   netAmount: number;
+  newCategoriesCount?: number;
+  newCategories?: string[];
 }
 
 /**
@@ -523,7 +526,33 @@ export function autoCategorizeByPayee(payee: string): string {
   return "General";
 }
 
-export function getCategoryColor(category: string): string {
+export const CATEGORY_PALETTE = [
+  "#2563eb", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+  "#ef4444", // Red
+  "#f97316", // Orange
+  "#14b8a6", // Teal
+  "#6366f1", // Indigo
+  "#84cc16", // Lime
+  "#a855f7", // Violet
+  "#0284c7", // Sky
+  "#e11d48", // Rose
+  "#64748b", // Slate
+  "#0d9488", // Dark Teal
+];
+
+export function getCategoryColor(category: string, existingCategories?: CategoryItem[]): string {
+  if (existingCategories && existingCategories.length > 0) {
+    const match = existingCategories.find(
+      (c) => c.name.toLowerCase().trim() === category.toLowerCase().trim()
+    );
+    if (match) return match.color;
+  }
+
   const cat = category.toLowerCase();
   if (cat.includes("food") || cat.includes("dining") || cat.includes("cafeteria") || cat.includes("restaurant")) return "#f59e0b";
   if (cat.includes("fuel") || cat.includes("transport") || cat.includes("gas") || cat.includes("transit")) return "#8b5cf6";
@@ -536,7 +565,13 @@ export function getCategoryColor(category: string): string {
   if (cat.includes("entertain") || cat.includes("movie") || cat.includes("game")) return "#ec4899";
   if (cat.includes("educat") || cat.includes("course") || cat.includes("school")) return "#6366f1";
   if (cat.includes("transfer")) return "#6366f1";
-  return "#64748b";
+
+  // Deterministic palette pick for unknown categories
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0;
+  }
+  return CATEGORY_PALETTE[hash % CATEGORY_PALETTE.length];
 }
 
 /**
@@ -546,7 +581,8 @@ export function convertRowsToTransactions(
   headers: string[],
   rows: string[][],
   config: ColumnMappingConfig,
-  accounts: Account[]
+  accounts: Account[],
+  existingCategories?: CategoryItem[]
 ): { items: ParsedTransactionRow[]; summary: ImportSummary } {
   const colIndices: Record<string, number> = {};
   headers.forEach((h, idx) => {
@@ -565,6 +601,7 @@ export function convertRowsToTransactions(
   let totalExpense = 0;
   let validRows = 0;
   let invalidRows = 0;
+  const newCategoriesSet = new Set<string>();
 
   const items: ParsedTransactionRow[] = rows.map((row, rIdx) => {
     const rawDate = dateIdx !== undefined ? row[dateIdx] : undefined;
@@ -597,6 +634,19 @@ export function convertRowsToTransactions(
       category = autoCategorizeByPayee(payee);
     }
 
+    const matchedCategory = existingCategories?.find(
+      (c) => c.name.toLowerCase().trim() === category.toLowerCase().trim()
+    );
+    const finalCategoryName = matchedCategory ? matchedCategory.name : category;
+    const finalCategoryColor = matchedCategory
+      ? matchedCategory.color
+      : getCategoryColor(category, existingCategories);
+    const isNewCategory = !matchedCategory && !!category && category.trim().length > 0;
+
+    if (isValid && isNewCategory) {
+      newCategoriesSet.add(finalCategoryName);
+    }
+
     // Resolve Account
     let account = defaultAccountName;
     if (config.accountSource === "column" && accIdx !== undefined && row[accIdx]?.trim()) {
@@ -625,11 +675,12 @@ export function convertRowsToTransactions(
       selected: isValid,
       isValid,
       error,
+      isNewCategory,
       transaction: {
         date: parsedDate,
         payee,
-        category,
-        categoryColor: getCategoryColor(category),
+        category: finalCategoryName,
+        categoryColor: finalCategoryColor,
         account,
         amount,
         type,
@@ -650,6 +701,8 @@ export function convertRowsToTransactions(
       totalIncome,
       totalExpense,
       netAmount: totalIncome - totalExpense,
+      newCategoriesCount: newCategoriesSet.size,
+      newCategories: Array.from(newCategoriesSet),
     },
   };
 }

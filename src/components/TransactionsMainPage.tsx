@@ -884,7 +884,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                         )}
                       </td>
 
-                      <td class="py-3.5 px-4 text-text-subtle truncate max-w-xs">
+                      <td class="py-3.5 px-4 text-text-subtle truncate max-w-xs" title={tx.notes || ""}>
                         {tx.notes || "—"}
                       </td>
 
@@ -967,6 +967,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           csvText={importFile()!.text}
           fileName={importFile()!.fileName}
           accounts={props.accounts || []}
+          categories={props.categories || []}
           currencySymbol={props.currencySymbol}
           onClose={() => setImportFile(null)}
           onImport={(imported) => {

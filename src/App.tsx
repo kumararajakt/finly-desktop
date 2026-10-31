@@ -40,6 +40,7 @@ import {
   saveBudgets,
   fetchCategories,
   saveCategories,
+  syncNewCategoriesFromTransactions,
   reassignCategoryTransactions,
   fetchLoans,
   saveLoans,
@@ -188,9 +189,20 @@ function App() {
 
   const handleImportCSV = async (imported: Omit<Transaction, "id">[]) => {
     try {
+      // 1. Automatically detect & create new categories not yet present in Finly
+      const currentCats = categories().length > 0 ? categories() : await fetchCategories();
+      const { updatedCategories, newCategoriesAdded } = await syncNewCategoriesFromTransactions(
+        imported,
+        currentCats
+      );
+      if (newCategoriesAdded.length > 0) {
+        setCategories(updatedCategories);
+      }
+
+      // 2. Import transactions into SQLite / storage
       await batchImportTransactions(imported);
 
-      // Re-fetch all fresh records and balances from SQLite
+      // 3. Re-fetch all fresh records and balances from SQLite
       const [refreshedTxs, refreshedAccs] = await Promise.all([
         fetchTransactions(),
         fetchAccounts(),

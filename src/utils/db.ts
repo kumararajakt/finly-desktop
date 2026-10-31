@@ -5,12 +5,35 @@ import {
   UserProfile,
   BudgetItem,
   CategoryItem,
+  CategoryType,
   LoanRecord,
   LoanPayment,
 } from "../types/finance";
+import { getCategoryColor } from "./csv";
 
 // Detect if we are running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
+function safeGetLocalStorage(key: string): string | null {
+  if (typeof localStorage !== "undefined") {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function safeSetLocalStorage(key: string, value: string): void {
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // ignore
+    }
+  }
+}
 
 export async function getUserProfile(): Promise<UserProfile | null> {
   if (isTauri()) {
@@ -22,7 +45,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     }
   }
 
-  const local = localStorage.getItem("finly_user_profile");
+  const local = safeGetLocalStorage("finly_user_profile");
   return local ? JSON.parse(local) : null;
 }
 
@@ -258,7 +281,7 @@ export async function fetchCategories(): Promise<CategoryItem[]> {
     }
   }
 
-  const local = localStorage.getItem("finly_categories");
+  const local = safeGetLocalStorage("finly_categories");
   if (local) {
     try {
       const parsed = JSON.parse(local);
@@ -286,7 +309,68 @@ export async function saveCategories(categories: CategoryItem[]): Promise<void> 
     }
   }
 
-  localStorage.setItem("finly_categories", JSON.stringify(categories));
+  safeSetLocalStorage("finly_categories", JSON.stringify(categories));
+}
+
+/**
+ * Detects any categories in imported transactions that are not currently present in Finly,
+ * creates them with appropriate names, colors, and types (expense/income/both),
+ * and persists them via saveCategories.
+ */
+export async function syncNewCategoriesFromTransactions(
+  transactions: Omit<Transaction, "id">[],
+  currentCategories: CategoryItem[]
+): Promise<{ updatedCategories: CategoryItem[]; newCategoriesAdded: CategoryItem[] }> {
+  const existingNames = new Set(
+    currentCategories.map((c) => c.name.toLowerCase().trim())
+  );
+  const newCatMap = new Map<
+    string,
+    { name: string; amounts: number[]; color: string }
+  >();
+
+  for (const tx of transactions) {
+    const rawName = (tx.category || "").trim();
+    if (!rawName) continue;
+    const lower = rawName.toLowerCase();
+    if (!existingNames.has(lower)) {
+      if (!newCatMap.has(lower)) {
+        newCatMap.set(lower, {
+          name: rawName,
+          amounts: [tx.amount],
+          color: tx.categoryColor || getCategoryColor(rawName, currentCategories),
+        });
+      } else {
+        newCatMap.get(lower)!.amounts.push(tx.amount);
+      }
+    }
+  }
+
+  if (newCatMap.size === 0) {
+    return { updatedCategories: currentCategories, newCategoriesAdded: [] };
+  }
+
+  const newCategoriesAdded: CategoryItem[] = Array.from(newCatMap.values()).map(
+    (entry, idx) => {
+      const hasIncome = entry.amounts.some((a) => a > 0);
+      const hasExpense = entry.amounts.some((a) => a < 0);
+      const type: CategoryType =
+        hasIncome && hasExpense ? "both" : hasIncome ? "income" : "expense";
+
+      return {
+        id: `cat-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+        name: entry.name,
+        color: entry.color,
+        type,
+        description: "Auto-created from CSV import",
+        isDefault: false,
+      };
+    }
+  );
+
+  const updatedCategories = [...currentCategories, ...newCategoriesAdded];
+  await saveCategories(updatedCategories);
+  return { updatedCategories, newCategoriesAdded };
 }
 
 export async function reassignCategoryTransactions(

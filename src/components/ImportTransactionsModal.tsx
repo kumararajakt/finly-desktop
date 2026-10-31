@@ -12,8 +12,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   SlidersHorizontal,
+  Tags,
 } from "./icons";
-import { Account, Transaction } from "../types/finance";
+import { Account, Transaction, CategoryItem } from "../types/finance";
 import {
   parseRawCSV,
   detectDefaultMapping,
@@ -25,6 +26,7 @@ interface ImportTransactionsModalProps {
   csvText: string;
   fileName: string;
   accounts: Account[];
+  categories?: CategoryItem[];
   currencySymbol?: string;
   onClose: () => void;
   onImport: (transactions: Omit<Transaction, "id">[]) => void;
@@ -64,7 +66,8 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
       parsedCSV().headers,
       parsedCSV().rows,
       config(),
-      props.accounts
+      props.accounts,
+      props.categories || []
     );
   });
 
@@ -114,6 +117,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
     let income = 0;
     let expense = 0;
     let selectedCount = 0;
+    const newCats = new Set<string>();
 
     for (const it of items) {
       if (sel.has(it.id) && it.isValid) {
@@ -122,6 +126,9 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
           income += it.transaction.amount;
         } else {
           expense += Math.abs(it.transaction.amount);
+        }
+        if (it.isNewCategory && it.transaction.category) {
+          newCats.add(it.transaction.category);
         }
       }
     }
@@ -133,6 +140,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
       totalIncome: income,
       totalExpense: expense,
       netCashFlow: income - expense,
+      newCategories: Array.from(newCats),
     };
   });
 
@@ -852,6 +860,16 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                 </div>
               </Show>
 
+              {/* Notice banner for new categories */}
+              <Show when={stats().newCategories.length > 0}>
+                <div class="flex items-center gap-2.5 p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs">
+                  <Tags class="w-4 h-4 shrink-0" />
+                  <span>
+                    <strong>{stats().newCategories.length} new {stats().newCategories.length === 1 ? "category" : "categories"}</strong> detected ({stats().newCategories.join(", ")}) and will be automatically created in Finly.
+                  </span>
+                </div>
+              </Show>
+
               {/* Filter and Search Bar */}
               <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="flex items-center gap-2">
@@ -985,15 +1003,22 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                                 </Show>
                               </td>
                               <td class="py-2 px-3 whitespace-nowrap">
-                                <span
-                                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                  style={{
-                                    "background-color": `${item.transaction.categoryColor || "#64748b"}20`,
-                                    color: item.transaction.categoryColor || "#64748b",
-                                  }}
-                                >
-                                  {item.transaction.category}
-                                </span>
+                                <div class="inline-flex items-center gap-1.5">
+                                  <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                    style={{
+                                      "background-color": `${item.transaction.categoryColor || "#64748b"}20`,
+                                      color: item.transaction.categoryColor || "#64748b",
+                                    }}
+                                  >
+                                    {item.transaction.category}
+                                  </span>
+                                  <Show when={item.isNewCategory}>
+                                    <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-primary/15 text-primary border border-primary/25">
+                                      New
+                                    </span>
+                                  </Show>
+                                </div>
                               </td>
                               <td class="py-2 px-3 whitespace-nowrap text-text-muted truncate max-w-27.5">
                                 {item.transaction.account}
