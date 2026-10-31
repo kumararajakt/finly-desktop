@@ -2,6 +2,7 @@ import { Component, For } from "solid-js";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeftRight,
   TrendingUp,
   Wallet,
   CreditCard,
@@ -43,12 +44,12 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
 
   const totalInflow = () =>
     props.transactions
-      .filter((t) => t.amount > 0)
+      .filter((t) => t.amount > 0 && t.type !== "transfer")
       .reduce((sum, t) => sum + t.amount, 0);
 
   const totalOutflow = () =>
     props.transactions
-      .filter((t) => t.amount < 0)
+      .filter((t) => t.amount < 0 && t.type !== "transfer")
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const netCashFlow = () => totalInflow() - totalOutflow();
@@ -65,9 +66,9 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
   const flaggedCount = () =>
     props.transactions.filter((t) => t.status === "flagged").length;
 
-  // Category breakdown for expenses
+  // Category breakdown for expenses (excludes transfers)
   const categoryBreakdown = () => {
-    const expenseTxs = props.transactions.filter((t) => t.amount < 0);
+    const expenseTxs = props.transactions.filter((t) => t.amount < 0 && t.type !== "transfer");
     const totalExp = totalOutflow();
     if (totalExp === 0) return [];
 
@@ -425,11 +426,21 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
               <tbody class="divide-y divide-card-border">
                 <For each={recentTransactions()}>
                   {(tx) => {
-                    const isIncome = tx.amount > 0;
+                    const isTransfer = tx.type === "transfer";
+                    const isIncome = !isTransfer && tx.amount > 0;
                     return (
                       <tr class="hover:bg-card-subtle transition-colors">
                         <td class="py-3 px-3 text-text-muted whitespace-nowrap">{tx.date}</td>
-                        <td class="py-3 px-3 font-semibold text-text-main">{tx.payee}</td>
+                        <td class="py-3 px-3 font-semibold text-text-main">
+                          <div class="flex items-center gap-1.5">
+                            {isTransfer && (
+                              <span class="p-0.5 rounded bg-primary-light text-primary" title="Transfer">
+                                <ArrowLeftRight class="w-3 h-3" />
+                              </span>
+                            )}
+                            <span>{tx.payee}</span>
+                          </div>
+                        </td>
                         <td class="py-3 px-3">
                           <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-card-subtle text-text-main border border-card-border">
                             <span
@@ -439,13 +450,27 @@ export const DashboardPage: Component<DashboardPageProps> = (props) => {
                             {tx.category}
                           </span>
                         </td>
-                        <td class="py-3 px-3 text-text-muted">{tx.account}</td>
+                        <td class="py-3 px-3 text-text-muted whitespace-nowrap">
+                          {isTransfer && tx.toAccount ? (
+                            <div class="inline-flex items-center gap-1.5 font-medium">
+                              <span class="text-text-main">{tx.account}</span>
+                              <ArrowLeftRight class="w-2.5 h-2.5 text-primary" />
+                              <span class="text-primary font-semibold">{tx.toAccount}</span>
+                            </div>
+                          ) : (
+                            tx.account
+                          )}
+                        </td>
                         <td
                           class={`py-3 px-3 text-right font-bold whitespace-nowrap ${
-                            isIncome ? "text-emerald-500" : "text-text-main"
+                            isTransfer
+                              ? "text-primary"
+                              : isIncome
+                              ? "text-emerald-500"
+                              : "text-text-main"
                           }`}
                         >
-                          {isIncome ? "+" : "-"}{symbol()}
+                          {isTransfer ? "" : isIncome ? "+" : "-"}{symbol()}
                           {Math.abs(tx.amount).toLocaleString("en-US", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,

@@ -29,3 +29,4 @@ export { default as Monitor } from "lucide-solid/icons/monitor";
 export { default as ChevronDown } from "lucide-solid/icons/chevron-down";
 export { default as Pencil } from "lucide-solid/icons/pencil";
 export { default as TriangleAlert } from "lucide-solid/icons/triangle-alert";
+export { default as ArrowLeftRight } from "lucide-solid/icons/arrow-left-right";

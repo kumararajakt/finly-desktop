@@ -9,6 +9,7 @@ export interface Transaction {
   category: string;
   categoryColor?: string;
   account: string;
+  toAccount?: string;
   amount: number; // positive for income, negative for expense
   type: TransactionType;
   status: TransactionStatus;

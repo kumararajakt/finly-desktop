@@ -4,6 +4,7 @@ import {
   Plus,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeftRight,
   TrendingUp,
   Clock,
   Trash2,
@@ -32,15 +33,15 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
 
-  // Compute metrics
+  // Compute metrics (transfers are asset/liability shifts, excluded from income/expense)
   const totalInflow = () =>
     props.transactions
-      .filter((t) => t.amount > 0)
+      .filter((t) => t.amount > 0 && t.type !== "transfer")
       .reduce((sum, t) => sum + t.amount, 0);
 
   const totalOutflow = () =>
     props.transactions
-      .filter((t) => t.amount < 0)
+      .filter((t) => t.amount < 0 && t.type !== "transfer")
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const netCashFlow = () => totalInflow() - totalOutflow();
@@ -55,8 +56,9 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
       if (props.activeFilter === "pending" && tx.status !== "pending") return false;
       if (props.activeFilter === "cleared" && tx.status !== "cleared") return false;
       if (props.activeFilter === "flagged" && tx.status !== "flagged") return false;
-      if (props.activeFilter === "income" && tx.amount <= 0) return false;
-      if (props.activeFilter === "expense" && tx.amount >= 0) return false;
+      if (props.activeFilter === "income" && (tx.amount <= 0 || tx.type === "transfer")) return false;
+      if (props.activeFilter === "expense" && (tx.amount >= 0 || tx.type === "transfer")) return false;
+      if (props.activeFilter === "transfer" && tx.type !== "transfer") return false;
 
       // Filter by search query
       if (searchQuery().trim()) {
@@ -64,8 +66,9 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
         const matchesPayee = tx.payee.toLowerCase().includes(query);
         const matchesCat = tx.category.toLowerCase().includes(query);
         const matchesAcc = tx.account.toLowerCase().includes(query);
+        const matchesToAcc = tx.toAccount?.toLowerCase().includes(query) ?? false;
         const matchesNotes = tx.notes?.toLowerCase().includes(query) ?? false;
-        if (!matchesPayee && !matchesCat && !matchesAcc && !matchesNotes) return false;
+        if (!matchesPayee && !matchesCat && !matchesAcc && !matchesToAcc && !matchesNotes) return false;
       }
 
       return true;
@@ -248,6 +251,17 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </button>
           <button
             type="button"
+            onClick={() => props.onFilterChange("transfer")}
+            class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              props.activeFilter === "transfer"
+                ? "bg-card text-text-main shadow-xs font-semibold"
+                : "text-text-muted hover:text-text-main"
+            }`}
+          >
+            Transfers
+          </button>
+          <button
+            type="button"
             onClick={() => props.onFilterChange("pending")}
             class={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
               props.activeFilter === "pending"
@@ -358,7 +372,8 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
               >
                 {(tx, idx) => {
                   const isSelected = () => selectedTxId() === tx.id;
-                  const isIncome = tx.amount > 0;
+                  const isTransfer = tx.type === "transfer";
+                  const isIncome = !isTransfer && tx.amount > 0;
 
                   return (
                     <tr
@@ -382,7 +397,14 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                       </td>
 
                       <td class="py-3.5 px-4 font-semibold text-text-main">
-                        {tx.payee}
+                        <div class="flex items-center gap-2">
+                          {isTransfer && (
+                            <span class="p-1 rounded-md bg-primary-light text-primary shrink-0" title="Transfer">
+                              <ArrowLeftRight class="w-3 h-3" />
+                            </span>
+                          )}
+                          <span>{tx.payee}</span>
+                        </div>
                       </td>
 
                       <td class="py-3.5 px-4">
@@ -398,7 +420,15 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                       </td>
 
                       <td class="py-3.5 px-4 text-text-muted whitespace-nowrap">
-                        {tx.account}
+                        {isTransfer && tx.toAccount ? (
+                          <div class="inline-flex items-center gap-1.5 font-medium">
+                            <span class="text-text-main">{tx.account}</span>
+                            <ArrowLeftRight class="w-3 h-3 text-primary flex-shrink-0" />
+                            <span class="text-primary font-semibold">{tx.toAccount}</span>
+                          </div>
+                        ) : (
+                          tx.account
+                        )}
                       </td>
 
                       <td class="py-3.5 px-4 text-text-subtle truncate max-w-xs">
@@ -407,10 +437,14 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
                       <td
                         class={`py-3.5 px-4 text-right font-bold whitespace-nowrap ${
-                          isIncome ? "text-emerald-500" : "text-text-main"
+                          isTransfer
+                            ? "text-primary"
+                            : isIncome
+                            ? "text-emerald-500"
+                            : "text-text-main"
                         }`}
                       >
-                        {isIncome ? "+" : "-"}{symbol()}
+                        {isTransfer ? "" : isIncome ? "+" : "-"}{symbol()}
                         {Math.abs(tx.amount).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,

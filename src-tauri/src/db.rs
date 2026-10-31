@@ -13,6 +13,8 @@ pub struct Transaction {
     #[serde(rename = "categoryColor")]
     pub category_color: Option<String>,
     pub account: String,
+    #[serde(rename = "toAccount")]
+    pub to_account: Option<String>,
     pub amount: f64,
     #[serde(rename = "type")]
     pub tx_type: String,
@@ -28,6 +30,8 @@ pub struct NewTransaction {
     #[serde(rename = "categoryColor")]
     pub category_color: Option<String>,
     pub account: String,
+    #[serde(rename = "toAccount")]
+    pub to_account: Option<String>,
     pub amount: f64,
     #[serde(rename = "type")]
     pub tx_type: String,
@@ -108,6 +112,9 @@ impl DbState {
             [],
         )?;
 
+        // Ensure to_account column exists for transfer transactions
+        let _ = conn.execute("ALTER TABLE transactions ADD COLUMN to_account TEXT", []);
+
         // Indexes for fast searching and filtering
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date DESC)",
@@ -130,7 +137,7 @@ impl DbState {
     pub fn get_transactions(&self) -> Result<Vec<Transaction>, rusqlite::Error> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, date, payee, category, category_color, account, amount, tx_type, status, notes
+            "SELECT id, date, payee, category, category_color, account, to_account, amount, tx_type, status, notes
              FROM transactions
              ORDER BY date DESC, created_at DESC",
         )?;
@@ -143,10 +150,11 @@ impl DbState {
                 category: row.get(3)?,
                 category_color: row.get(4)?,
                 account: row.get(5)?,
-                amount: row.get(6)?,
-                tx_type: row.get(7)?,
-                status: row.get(8)?,
-                notes: row.get(9)?,
+                to_account: row.get(6)?,
+                amount: row.get(7)?,
+                tx_type: row.get(8)?,
+                status: row.get(9)?,
+                notes: row.get(10)?,
             })
         })?;
 
@@ -164,8 +172,8 @@ impl DbState {
         let id = Uuid::new_v4().to_string();
 
         tx.execute(
-            "INSERT INTO transactions (id, date, payee, category, category_color, account, amount, tx_type, status, notes)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO transactions (id, date, payee, category, category_color, account, to_account, amount, tx_type, status, notes)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
                 id,
                 new_tx.date,
@@ -173,6 +181,7 @@ impl DbState {
                 new_tx.category,
                 new_tx.category_color,
                 new_tx.account,
+                new_tx.to_account,
                 new_tx.amount,
                 new_tx.tx_type,
                 new_tx.status,
@@ -180,23 +189,52 @@ impl DbState {
             ],
         )?;
 
-        // Update or insert account balance
-        let updated_rows = tx.execute(
-            "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
-            params![new_tx.amount, new_tx.account],
-        )?;
-
-        if updated_rows == 0 {
-            let acc_id = Uuid::new_v4().to_string();
-            let acc_type = if new_tx.account.to_lowercase().contains("credit") {
-                "credit"
-            } else {
-                "checking"
-            };
+        if new_tx.tx_type == "transfer" {
+            let transfer_amt = new_tx.amount.abs();
+            // Source account balance decreases
             tx.execute(
-                "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
-                params![acc_id, new_tx.account, acc_type, new_tx.amount],
+                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                params![transfer_amt, new_tx.account],
             )?;
+
+            // Destination account balance increases
+            if let Some(ref to_acc) = new_tx.to_account {
+                let updated = tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![transfer_amt, to_acc],
+                )?;
+                if updated == 0 {
+                    let acc_id = Uuid::new_v4().to_string();
+                    let acc_type = if to_acc.to_lowercase().contains("credit") {
+                        "credit"
+                    } else {
+                        "checking"
+                    };
+                    tx.execute(
+                        "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
+                        params![acc_id, to_acc, acc_type, transfer_amt],
+                    )?;
+                }
+            }
+        } else {
+            // Standard Income / Expense: add amount to account balance
+            let updated_rows = tx.execute(
+                "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                params![new_tx.amount, new_tx.account],
+            )?;
+
+            if updated_rows == 0 {
+                let acc_id = Uuid::new_v4().to_string();
+                let acc_type = if new_tx.account.to_lowercase().contains("credit") {
+                    "credit"
+                } else {
+                    "checking"
+                };
+                tx.execute(
+                    "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
+                    params![acc_id, new_tx.account, acc_type, new_tx.amount],
+                )?;
+            }
         }
 
         tx.commit()?;
@@ -208,6 +246,7 @@ impl DbState {
             category: new_tx.category,
             category_color: new_tx.category_color,
             account: new_tx.account,
+            to_account: new_tx.to_account,
             amount: new_tx.amount,
             tx_type: new_tx.tx_type,
             status: new_tx.status,
@@ -219,45 +258,85 @@ impl DbState {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
 
-        // Retrieve old transaction to adjust account balance difference
-        let old: Option<(String, f64)> = tx
+        // Retrieve old transaction to revert its effect
+        let old: Option<(String, Option<String>, f64, String)> = tx
             .query_row(
-                "SELECT account, amount FROM transactions WHERE id = ?1",
+                "SELECT account, to_account, amount, tx_type FROM transactions WHERE id = ?1",
                 params![tx_data.id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )
             .ok();
 
-        if let Some((old_account, old_amount)) = old {
-            // Revert old transaction effect on old account
-            tx.execute(
-                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
-                params![old_amount, old_account],
-            )?;
+        if let Some((old_account, old_to_account, old_amount, old_tx_type)) = old {
+            if old_tx_type == "transfer" {
+                let old_amt = old_amount.abs();
+                tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![old_amt, old_account],
+                )?;
+                if let Some(old_to) = old_to_account {
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                        params![old_amt, old_to],
+                    )?;
+                }
+            } else {
+                tx.execute(
+                    "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                    params![old_amount, old_account],
+                )?;
+            }
         }
 
-        // Apply new transaction effect on new account
-        let updated_rows = tx.execute(
-            "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
-            params![tx_data.amount, tx_data.account],
-        )?;
-
-        if updated_rows == 0 {
-            let acc_id = Uuid::new_v4().to_string();
-            let acc_type = if tx_data.account.to_lowercase().contains("credit") {
-                "credit"
-            } else {
-                "checking"
-            };
+        // Apply new transaction effect
+        if tx_data.tx_type == "transfer" {
+            let new_amt = tx_data.amount.abs();
             tx.execute(
-                "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
-                params![acc_id, tx_data.account, acc_type, tx_data.amount],
+                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                params![new_amt, tx_data.account],
             )?;
+
+            if let Some(ref to_acc) = tx_data.to_account {
+                let updated = tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![new_amt, to_acc],
+                )?;
+                if updated == 0 {
+                    let acc_id = Uuid::new_v4().to_string();
+                    let acc_type = if to_acc.to_lowercase().contains("credit") {
+                        "credit"
+                    } else {
+                        "checking"
+                    };
+                    tx.execute(
+                        "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
+                        params![acc_id, to_acc, acc_type, new_amt],
+                    )?;
+                }
+            }
+        } else {
+            let updated_rows = tx.execute(
+                "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                params![tx_data.amount, tx_data.account],
+            )?;
+
+            if updated_rows == 0 {
+                let acc_id = Uuid::new_v4().to_string();
+                let acc_type = if tx_data.account.to_lowercase().contains("credit") {
+                    "credit"
+                } else {
+                    "checking"
+                };
+                tx.execute(
+                    "INSERT INTO accounts (id, name, account_type, balance) VALUES (?1, ?2, ?3, ?4)",
+                    params![acc_id, tx_data.account, acc_type, tx_data.amount],
+                )?;
+            }
         }
 
         tx.execute(
             "UPDATE transactions
-             SET date = ?2, payee = ?3, category = ?4, category_color = ?5, account = ?6, amount = ?7, tx_type = ?8, status = ?9, notes = ?10
+             SET date = ?2, payee = ?3, category = ?4, category_color = ?5, account = ?6, to_account = ?7, amount = ?8, tx_type = ?9, status = ?10, notes = ?11
              WHERE id = ?1",
             params![
                 tx_data.id,
@@ -266,6 +345,7 @@ impl DbState {
                 tx_data.category,
                 tx_data.category_color,
                 tx_data.account,
+                tx_data.to_account,
                 tx_data.amount,
                 tx_data.tx_type,
                 tx_data.status,
@@ -283,19 +363,33 @@ impl DbState {
         let tx = conn.transaction()?;
 
         // Retrieve transaction first to revert balance
-        let found: Option<(String, f64)> = tx
+        let found: Option<(String, Option<String>, f64, String)> = tx
             .query_row(
-                "SELECT account, amount FROM transactions WHERE id = ?1",
+                "SELECT account, to_account, amount, tx_type FROM transactions WHERE id = ?1",
                 params![id],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )
             .ok();
 
-        if let Some((account, amount)) = found {
-            tx.execute(
-                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
-                params![amount, account],
-            )?;
+        if let Some((account, to_account, amount, tx_type)) = found {
+            if tx_type == "transfer" {
+                let transfer_amt = amount.abs();
+                tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![transfer_amt, account],
+                )?;
+                if let Some(to_acc) = to_account {
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                        params![transfer_amt, to_acc],
+                    )?;
+                }
+            } else {
+                tx.execute(
+                    "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                    params![amount, account],
+                )?;
+            }
 
             tx.execute("DELETE FROM transactions WHERE id = ?1", params![id])?;
             tx.commit()?;
@@ -335,8 +429,8 @@ impl DbState {
         for new_tx in transactions {
             let id = Uuid::new_v4().to_string();
             tx.execute(
-                "INSERT INTO transactions (id, date, payee, category, category_color, account, amount, tx_type, status, notes)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                "INSERT INTO transactions (id, date, payee, category, category_color, account, to_account, amount, tx_type, status, notes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
                 params![
                     id,
                     new_tx.date,
@@ -344,6 +438,7 @@ impl DbState {
                     new_tx.category,
                     new_tx.category_color,
                     new_tx.account,
+                    new_tx.to_account,
                     new_tx.amount,
                     new_tx.tx_type,
                     new_tx.status,

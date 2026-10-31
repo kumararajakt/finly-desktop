@@ -29,7 +29,12 @@ export const BudgetPage: Component<BudgetPageProps> = (props) => {
   // Calculate spent amount per category based on transactions
   const getCategorySpent = (category: string) => {
     return props.transactions
-      .filter((t) => t.category.toLowerCase() === category.toLowerCase() && t.amount < 0)
+      .filter(
+        (t) =>
+          t.category.toLowerCase() === category.toLowerCase() &&
+          t.amount < 0 &&
+          t.type !== "transfer"
+      )
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   };
 

@@ -1,6 +1,6 @@
 import { Component, createSignal, For } from "solid-js";
 import { X } from "./icons";
-import { Account, Transaction } from "../types/finance";
+import { Account, Transaction, TransactionType } from "../types/finance";
 
 interface TransactionModalProps {
   transaction?: Transaction | null;
@@ -62,12 +62,16 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
   const [amount, setAmount] = createSignal(
     props.transaction ? String(Math.abs(props.transaction.amount)) : ""
   );
-  const [type, setType] = createSignal<"expense" | "income">(
-    props.transaction?.type === "income" ? "income" : "expense"
+  const [type, setType] = createSignal<TransactionType>(
+    props.transaction?.type || "expense"
   );
   const [category, setCategory] = createSignal(getInitialCategory());
   const [account, setAccount] = createSignal(
     props.transaction?.account || props.accounts[0]?.name || ""
+  );
+  const [toAccount, setToAccount] = createSignal(
+    props.transaction?.toAccount ||
+      (props.accounts.find((a) => a.name !== props.transaction?.account)?.name || props.accounts[1]?.name || "")
   );
   const [date, setDate] = createSignal(
     props.transaction?.date || new Date().toISOString().split("T")[0]
@@ -84,14 +88,20 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
       (c) => c.name.toLowerCase() === category().toLowerCase()
     );
 
+    const resolvedPayee = payee().trim() || (type() === "transfer" ? `Transfer to ${toAccount()}` : "Untitled Transaction");
+    const resolvedCat = type() === "transfer" ? "Transfer" : category();
+    const resolvedColor = type() === "transfer" ? "#6366f1" : (matchedCat?.color || props.transaction?.categoryColor || "#64748b");
+    const resolvedAmount = type() === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount);
+
     props.onSave(
       {
         date: date(),
-        payee: payee() || "Untitled Transaction",
-        category: category(),
-        categoryColor: matchedCat?.color || props.transaction?.categoryColor || "#64748b",
+        payee: resolvedPayee,
+        category: resolvedCat,
+        categoryColor: resolvedColor,
         account: account(),
-        amount: type() === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
+        toAccount: type() === "transfer" ? toAccount() : undefined,
+        amount: resolvedAmount,
         type: type(),
         status: isPending()
           ? "pending"
@@ -123,11 +133,14 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
         </div>
 
         <form onSubmit={handleSubmit} class="space-y-4">
-          {/* Expense vs Income toggle */}
+          {/* Expense vs Income vs Transfer toggle */}
           <div class="flex rounded-xl bg-card-subtle p-1 border border-card-border">
             <button
               type="button"
-              onClick={() => setType("expense")}
+              onClick={() => {
+                setType("expense");
+                if (category() === "Transfer") setCategory("Groceries");
+              }}
               class={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 type() === "expense"
                   ? "bg-card text-text-main shadow-xs"
@@ -138,7 +151,10 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
             </button>
             <button
               type="button"
-              onClick={() => setType("income")}
+              onClick={() => {
+                setType("income");
+                if (category() === "Transfer") setCategory("Salary");
+              }}
               class={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 type() === "income"
                   ? "bg-card text-emerald-500 shadow-xs"
@@ -146,6 +162,24 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
               }`}
             >
               Income
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setType("transfer");
+                setCategory("Transfer");
+                if (!toAccount() || toAccount() === account()) {
+                  const target = props.accounts.find((a) => a.name !== account());
+                  if (target) setToAccount(target.name);
+                }
+              }}
+              class={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                type() === "transfer"
+                  ? "bg-card text-primary shadow-xs"
+                  : "text-text-muted hover:text-text-main"
+              }`}
+            >
+              Transfer
             </button>
           </div>
 
@@ -165,54 +199,40 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
             />
           </div>
 
-          {/* Payee input */}
+          {/* Payee / Description input */}
           <div>
             <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-              Payee / Merchant
+              {type() === "transfer" ? "Description / Note" : "Payee / Merchant"}
             </label>
             <input
               type="text"
-              required
-              placeholder="e.g. Trader Joe's, Apple, Employer"
+              placeholder={
+                type() === "transfer"
+                  ? `e.g. Card bill payment, Transfer to ${toAccount() || "Account"}`
+                  : "e.g. Trader Joe's, Apple, Employer"
+              }
               value={payee()}
               onInput={(e) => setPayee(e.currentTarget.value)}
               class="w-full bg-card border border-card-border rounded-xl px-3.5 py-2 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
             />
           </div>
 
-          {/* Category & Account Grid */}
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-                Category
-              </label>
-              <select
-                value={category()}
-                onChange={(e) => setCategory(e.currentTarget.value)}
-                class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
-              >
-                <For each={allCategories()}>
-                  {(c) => (
-                    <option
-                      value={c.name}
-                      selected={category().toLowerCase() === c.name.toLowerCase()}
-                      class="bg-card text-text-main"
-                    >
-                      {c.name}
-                    </option>
-                  )}
-                </For>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-                Account
-              </label>
-              {allAccounts().length > 0 ? (
+          {/* Accounts & Category Fields */}
+          {type() === "transfer" ? (
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
+                  From Account (Debit)
+                </label>
                 <select
                   value={account()}
-                  onChange={(e) => setAccount(e.currentTarget.value)}
+                  onChange={(e) => {
+                    setAccount(e.currentTarget.value);
+                    if (toAccount() === e.currentTarget.value) {
+                      const other = props.accounts.find((a) => a.name !== e.currentTarget.value);
+                      if (other) setToAccount(other.name);
+                    }
+                  }}
                   class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
                 >
                   <For each={allAccounts()}>
@@ -227,18 +247,92 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
                     )}
                   </For>
                 </select>
-              ) : (
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Checking"
-                  value={account()}
-                  onInput={(e) => setAccount(e.currentTarget.value)}
-                  class="w-full bg-card border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
-                />
-              )}
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
+                  To Account (Credit)
+                </label>
+                <select
+                  value={toAccount()}
+                  onChange={(e) => setToAccount(e.currentTarget.value)}
+                  class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
+                >
+                  <For each={allAccounts()}>
+                    {(accName) => (
+                      <option
+                        value={accName}
+                        selected={toAccount().toLowerCase() === accName.toLowerCase()}
+                        disabled={accName.toLowerCase() === account().toLowerCase()}
+                        class="bg-card text-text-main"
+                      >
+                        {accName} {accName.toLowerCase() === account().toLowerCase() ? "(Same account)" : ""}
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
+                  Category
+                </label>
+                <select
+                  value={category()}
+                  onChange={(e) => setCategory(e.currentTarget.value)}
+                  class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
+                >
+                  <For each={allCategories()}>
+                    {(c) => (
+                      <option
+                        value={c.name}
+                        selected={category().toLowerCase() === c.name.toLowerCase()}
+                        class="bg-card text-text-main"
+                      >
+                        {c.name}
+                      </option>
+                    )}
+                  </For>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
+                  Account
+                </label>
+                {allAccounts().length > 0 ? (
+                  <select
+                    value={account()}
+                    onChange={(e) => setAccount(e.currentTarget.value)}
+                    class="w-full bg-card border border-card-border rounded-xl px-3 pr-9 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition cursor-pointer appearance-none"
+                  >
+                    <For each={allAccounts()}>
+                      {(accName) => (
+                        <option
+                          value={accName}
+                          selected={account().toLowerCase() === accName.toLowerCase()}
+                          class="bg-card text-text-main"
+                        >
+                          {accName}
+                        </option>
+                      )}
+                    </For>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Checking"
+                    value={account()}
+                    onInput={(e) => setAccount(e.currentTarget.value)}
+                    class="w-full bg-card border border-card-border rounded-xl px-3 py-2 text-xs text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Date */}
           <div>
