@@ -42,3 +42,4 @@ export { default as Users } from "lucide-solid/icons/users";
 export { default as ArrowUpDown } from "lucide-solid/icons/arrow-up-down";
 export { default as ArrowUp } from "lucide-solid/icons/arrow-up";
 export { default as ArrowDown } from "lucide-solid/icons/arrow-down";
+export { default as Download } from "lucide-solid/icons/download";

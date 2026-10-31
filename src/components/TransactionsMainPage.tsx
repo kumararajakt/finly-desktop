@@ -17,9 +17,12 @@ import {
   ArrowDown,
   Filter,
   X,
+  Download,
+  Check,
 } from "./icons";
 import { Transaction, Account, CategoryItem } from "../types/finance";
 import { ImportTransactionsModal } from "./ImportTransactionsModal";
+import { exportTransactionsToCSV, downloadCSV } from "../utils/csv";
 
 interface TransactionsMainPageProps {
   transactions: Transaction[];
@@ -71,6 +74,34 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
     setCustomEndDate("");
     setFilterMinAmount("");
     setFilterMaxAmount("");
+  };
+
+  const [exportSuccessMessage, setExportSuccessMessage] = createSignal(false);
+
+  const handleExportCSV = async () => {
+    const list = sortedTransactions();
+    if (list.length === 0) return;
+
+    // Generate descriptive filename based on active filters
+    const today = new Date().toISOString().slice(0, 10);
+    let filename = `finly_transactions_${today}.csv`;
+    if (filterCategory()) {
+      filename = `finly_transactions_${filterCategory().toLowerCase().replace(/\s+/g, "_")}_${today}.csv`;
+    } else if (filterAccount()) {
+      filename = `finly_transactions_${filterAccount().toLowerCase().replace(/\s+/g, "_")}_${today}.csv`;
+    } else if (activeFiltersCount() > 0 || props.activeFilter !== "all" || searchQuery().trim()) {
+      filename = `finly_transactions_filtered_${today}.csv`;
+    }
+
+    const csvContent = exportTransactionsToCSV(list);
+    const saved = await downloadCSV(filename, csvContent);
+
+    if (saved) {
+      setExportSuccessMessage(true);
+      setTimeout(() => {
+        setExportSuccessMessage(false);
+      }, 2500);
+    }
   };
 
   const allAccountsList = () => {
@@ -335,6 +366,32 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
 
           <button
             type="button"
+            onClick={handleExportCSV}
+            disabled={sortedTransactions().length === 0}
+            title={
+              activeFiltersCount() > 0 || searchQuery().trim() || props.activeFilter !== "all"
+                ? `Export ${sortedTransactions().length} filtered transaction${sortedTransactions().length === 1 ? "" : "s"} to CSV`
+                : `Export all ${sortedTransactions().length} transaction${sortedTransactions().length === 1 ? "" : "s"} to CSV`
+            }
+            class={`inline-flex items-center gap-1.5 border text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs cursor-pointer ${
+              exportSuccessMessage()
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                : "bg-card hover:bg-card-subtle border-card-border text-text-muted hover:text-text-main disabled:opacity-40 disabled:cursor-not-allowed"
+            }`}
+          >
+            <Show when={exportSuccessMessage()} fallback={<Download class="w-3.5 h-3.5" />}>
+              <Check class="w-3.5 h-3.5 text-emerald-500" />
+            </Show>
+            <span>{exportSuccessMessage() ? "Exported!" : "Export CSV"}</span>
+            <Show when={!exportSuccessMessage() && (activeFiltersCount() > 0 || searchQuery().trim() || props.activeFilter !== "all")}>
+              <span class="text-[10px] text-text-muted font-normal">
+                ({sortedTransactions().length})
+              </span>
+            </Show>
+          </button>
+
+          <button
+            type="button"
             onClick={props.onOpenAddTransaction}
             class="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-xs cursor-pointer"
           >
@@ -481,6 +538,22 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
               </div>
             </div>
           </Show>
+
+          {/* Filter summary & quick export footer */}
+          <div class="flex items-center justify-between pt-3 border-t border-card-border text-xs text-text-muted">
+            <span>
+              Showing <strong class="text-text-main">{sortedTransactions().length}</strong> of {props.transactions.length} transactions
+            </span>
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={sortedTransactions().length === 0}
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
+            >
+              <Download class="w-3.5 h-3.5" />
+              <span>Export Filtered ({sortedTransactions().length})</span>
+            </button>
+          </div>
         </div>
       </Show>
 

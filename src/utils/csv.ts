@@ -1,4 +1,8 @@
+import { invoke } from "@tauri-apps/api/core";
 import { Transaction, Account, CategoryItem } from "../types/finance";
+
+// Detect if running inside Tauri's webview
+const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export type AmountMode = "single" | "double" | "type_column";
 
@@ -718,4 +722,107 @@ export function parseTransactionsCSV(csvText: string): Omit<Transaction, "id">[]
   const { items } = convertRowsToTransactions(parsed.headers, parsed.rows, config, []);
 
   return items.filter((item) => item.isValid).map((item) => item.transaction);
+}
+
+/**
+ * Properly escapes a field for standard CSV RFC 4180 format.
+ */
+export function escapeCSVField(field: string | number | undefined | null): string {
+  if (field === undefined || field === null) return "";
+  const str = String(field);
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Serializes an array of transactions into a standard CSV string.
+ */
+export function exportTransactionsToCSV(transactions: Transaction[]): string {
+  const headers = [
+    "Date",
+    "Payee",
+    "Category",
+    "Account",
+    "To Account",
+    "Amount",
+    "Type",
+    "Status",
+    "Notes",
+  ];
+
+  const rows = transactions.map((t) => [
+    escapeCSVField(t.date),
+    escapeCSVField(t.payee),
+    escapeCSVField(t.category),
+    escapeCSVField(t.account),
+    escapeCSVField(t.toAccount || ""),
+    escapeCSVField(t.amount.toFixed(2)),
+    escapeCSVField(t.type),
+    escapeCSVField(t.status),
+    escapeCSVField(t.notes || ""),
+  ]);
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+}
+
+/**
+ * Triggers a save file dialog to prompt the user where to save the CSV file.
+ * In Tauri: Uses native OS file chooser dialog (via XDG Desktop Portal / rfd).
+ * In Browser: Uses File System Access API (showSaveFilePicker) if available, otherwise triggers fallback download.
+ * Returns true if saved, or false if cancelled by user.
+ */
+export async function downloadCSV(filename: string, csvContent: string): Promise<boolean> {
+  if (isTauri()) {
+    try {
+      const savedPath = await invoke<string | null>("save_csv_file", {
+        defaultFilename: filename,
+        content: csvContent,
+      });
+      return savedPath !== null;
+    } catch (err) {
+      console.error("Tauri save_csv_file dialog error:", err);
+      // Fallback to browser download if command failed
+    }
+  }
+
+  // Web fallback: File System Access API if supported
+  if (typeof window !== "undefined" && "showSaveFilePicker" in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [
+          {
+            description: "CSV Files",
+            accept: { "text/csv": [".csv"] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(csvContent);
+      await writable.close();
+      return true;
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        return false; // User cancelled
+      }
+      console.error("showSaveFilePicker error:", err);
+    }
+  }
+
+  // Final fallback (legacy web download)
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 150);
+  return true;
 }

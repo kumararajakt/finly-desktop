@@ -70,6 +70,25 @@ fn set_setting(state: tauri::State<'_, DbState>, key: String, value: String) -> 
     state.set_setting(&key, &value).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn save_csv_file(default_filename: String, content: String) -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .set_file_name(&default_filename)
+        .add_filter("CSV Files (*.csv)", &["csv"])
+        .save_file()
+        .await;
+
+    if let Some(file_handle) = file {
+        file_handle
+            .write(content.as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(Some(file_handle.path().to_string_lossy().to_string()))
+    } else {
+        Ok(None)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -96,7 +115,8 @@ pub fn run() {
             get_accounts,
             add_account,
             get_setting,
-            set_setting
+            set_setting,
+            save_csv_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
