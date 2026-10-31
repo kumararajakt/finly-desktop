@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
-import { Account, Transaction, UserProfile, BudgetItem, CategoryItem } from "../types/finance";
+import {
+  Account,
+  Transaction,
+  UserProfile,
+  BudgetItem,
+  CategoryItem,
+  LoanRecord,
+  LoanPayment,
+} from "../types/finance";
 
 // Detect if we are running inside Tauri's webview
 const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -302,4 +310,117 @@ export async function reassignCategoryTransactions(
   }
 
   return affected.length;
+}
+
+export async function fetchLoans(): Promise<LoanRecord[]> {
+  if (isTauri()) {
+    try {
+      const json = await invoke<string | null>("get_setting", { key: "user_loans" });
+      if (json) return JSON.parse(json);
+    } catch (err) {
+      console.error("Failed to load loans from SQLite:", err);
+    }
+  }
+
+  const local = localStorage.getItem("finly_loans");
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch {
+      // fallback
+    }
+  }
+
+  return [];
+}
+
+export async function saveLoans(loans: LoanRecord[]): Promise<void> {
+  if (isTauri()) {
+    try {
+      await invoke("set_setting", {
+        key: "user_loans",
+        value: JSON.stringify(loans),
+      });
+      return;
+    } catch (err) {
+      console.error("Failed to save loans to SQLite:", err);
+    }
+  }
+
+  localStorage.setItem("finly_loans", JSON.stringify(loans));
+}
+
+export async function fetchLoanPayments(): Promise<LoanPayment[]> {
+  if (isTauri()) {
+    try {
+      const json = await invoke<string | null>("get_setting", { key: "user_loan_payments" });
+      if (json) return JSON.parse(json);
+    } catch (err) {
+      console.error("Failed to load loan payments from SQLite:", err);
+    }
+  }
+
+  const local = localStorage.getItem("finly_loan_payments");
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch {
+      // fallback
+    }
+  }
+
+  return [];
+}
+
+export async function saveLoanPayments(payments: LoanPayment[]): Promise<void> {
+  if (isTauri()) {
+    try {
+      await invoke("set_setting", {
+        key: "user_loan_payments",
+        value: JSON.stringify(payments),
+      });
+      return;
+    } catch (err) {
+      console.error("Failed to save loan payments to SQLite:", err);
+    }
+  }
+
+  localStorage.setItem("finly_loan_payments", JSON.stringify(payments));
+}
+
+export function createLoanTransaction(loan: LoanRecord): Omit<Transaction, "id"> {
+  const isLent = loan.type === "lent";
+  return {
+    date: loan.startDate,
+    payee: isLent ? `Loan to ${loan.contactName}` : `Loan from ${loan.contactName}`,
+    category: isLent ? "Loan Lent" : "Loan Borrowed",
+    categoryColor: isLent ? "#8b5cf6" : "#f59e0b",
+    account: loan.account,
+    amount: isLent ? -Math.abs(loan.initialAmount) : Math.abs(loan.initialAmount),
+    type: "transfer",
+    status: "cleared",
+    notes: loan.notes ? `P2P Loan: ${loan.notes}` : `P2P Loan (${isLent ? "Lent" : "Borrowed"})`,
+  };
+}
+
+export function createRepaymentTransaction(
+  payment: LoanPayment,
+  loan: LoanRecord
+): Omit<Transaction, "id"> {
+  const isLent = loan.type === "lent";
+  return {
+    date: payment.date,
+    payee: isLent
+      ? `Repayment from ${loan.contactName}`
+      : `Repayment to ${loan.contactName}`,
+    category: "Loan Repayment",
+    categoryColor: isLent ? "#10b981" : "#ef4444",
+    account: payment.account,
+    amount: isLent ? Math.abs(payment.amount) : -Math.abs(payment.amount),
+    type: "transfer",
+    status: "cleared",
+    notes: payment.notes
+      ? `Repayment: ${payment.notes}`
+      : `P2P Loan Repayment (${loan.contactName})`,
+  };
 }

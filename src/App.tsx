@@ -3,15 +3,27 @@ import { Sidebar } from "./components/Sidebar";
 import { DashboardPage } from "./components/DashboardPage";
 import { BudgetPage } from "./components/BudgetPage";
 import { CategoryPage } from "./components/CategoryPage";
+import { LoansPage } from "./components/LoansPage";
 import { TransactionsMainPage } from "./components/TransactionsMainPage";
 import { TransactionModal } from "./components/TransactionModal";
 import { AccountModal } from "./components/AccountModal";
 import { BudgetModal } from "./components/BudgetModal";
 import { CategoryModal } from "./components/CategoryModal";
 import { DeleteCategoryModal } from "./components/DeleteCategoryModal";
+import { LoanModal } from "./components/LoanModal";
+import { LoanPaymentModal } from "./components/LoanPaymentModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { SettingsModal } from "./components/SettingsModal";
-import { Account, Transaction, UserProfile, ThemeMode, BudgetItem, CategoryItem } from "./types/finance";
+import {
+  Account,
+  Transaction,
+  UserProfile,
+  ThemeMode,
+  BudgetItem,
+  CategoryItem,
+  LoanRecord,
+  LoanPayment,
+} from "./types/finance";
 import { applyTheme, getStoredTheme, setStoredTheme } from "./utils/theme";
 import {
   fetchAccounts,
@@ -29,6 +41,12 @@ import {
   fetchCategories,
   saveCategories,
   reassignCategoryTransactions,
+  fetchLoans,
+  saveLoans,
+  fetchLoanPayments,
+  saveLoanPayments,
+  createLoanTransaction,
+  createRepaymentTransaction,
 } from "./utils/db";
 import "./App.css";
 
@@ -41,33 +59,50 @@ function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = createSignal(false);
   const [editingCategory, setEditingCategory] = createSignal<CategoryItem | null>(null);
   const [deletingCategory, setDeletingCategory] = createSignal<CategoryItem | null>(null);
+  const [isLoanModalOpen, setIsLoanModalOpen] = createSignal(false);
+  const [repayingLoan, setRepayingLoan] = createSignal<LoanRecord | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = createSignal(false);
   const [showOnboarding, setShowOnboarding] = createSignal(false);
   const [activeFilter, setActiveFilter] = createSignal("all");
-  const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions" | "budgets" | "categories">("dashboard");
+  const [currentView, setCurrentView] = createSignal<"dashboard" | "transactions" | "budgets" | "categories" | "loans">("dashboard");
   const [accounts, setAccounts] = createSignal<Account[]>([]);
   const [transactions, setTransactions] = createSignal<Transaction[]>([]);
   const [budgets, setBudgets] = createSignal<BudgetItem[]>([]);
   const [categories, setCategories] = createSignal<CategoryItem[]>([]);
+  const [loans, setLoans] = createSignal<LoanRecord[]>([]);
+  const [loanPayments, setLoanPayments] = createSignal<LoanPayment[]>([]);
   const [userProfile, setUserProfile] = createSignal<UserProfile | null>(null);
   const [currentTheme, setCurrentTheme] = createSignal<ThemeMode>("auto");
 
   // Load persisted SQLite data, theme, and user profile on launch
   onMount(async () => {
     try {
-      const [loadedProfile, loadedAccounts, loadedTransactions, loadedTheme, loadedBudgets, loadedCategories] = await Promise.all([
+      const [
+        loadedProfile,
+        loadedAccounts,
+        loadedTransactions,
+        loadedTheme,
+        loadedBudgets,
+        loadedCategories,
+        loadedLoans,
+        loadedPayments,
+      ] = await Promise.all([
         getUserProfile(),
         fetchAccounts(),
         fetchTransactions(),
         getStoredTheme(),
         fetchBudgets(),
         fetchCategories(),
+        fetchLoans(),
+        fetchLoanPayments(),
       ]);
 
       setCurrentTheme(loadedTheme);
       applyTheme(loadedTheme);
       setBudgets(loadedBudgets);
       setCategories(loadedCategories);
+      setLoans(loadedLoans);
+      setLoanPayments(loadedPayments);
 
       if (loadedProfile) {
         setUserProfile(loadedProfile);
@@ -240,6 +275,58 @@ function App() {
     setDeletingCategory(null);
   };
 
+  const handleCreateLoan = async (loan: LoanRecord) => {
+    try {
+      const tx = createLoanTransaction(loan);
+      await handleSaveTransaction(tx);
+      const updatedLoans = [loan, ...loans()];
+      setLoans(updatedLoans);
+      await saveLoans(updatedLoans);
+      setIsLoanModalOpen(false);
+    } catch (err) {
+      console.error("Failed to create loan record:", err);
+    }
+  };
+
+  const handleRecordPayment = async (payment: LoanPayment) => {
+    try {
+      const loan = loans().find((l) => l.id === payment.loanId);
+      if (!loan) return;
+
+      const tx = createRepaymentTransaction(payment, loan);
+      await handleSaveTransaction(tx);
+
+      const newRemaining = Math.max(0, loan.remainingAmount - payment.amount);
+      const nextStatus = newRemaining <= 0 ? "settled" : "active";
+
+      const updatedLoans = loans().map((l) =>
+        l.id === loan.id
+          ? { ...l, remainingAmount: newRemaining, status: nextStatus as any }
+          : l
+      );
+      setLoans(updatedLoans);
+      await saveLoans(updatedLoans);
+
+      const updatedPayments = [payment, ...loanPayments()];
+      setLoanPayments(updatedPayments);
+      await saveLoanPayments(updatedPayments);
+
+      setRepayingLoan(null);
+    } catch (err) {
+      console.error("Failed to record loan payment:", err);
+    }
+  };
+
+  const handleDeleteLoan = async (id: string) => {
+    try {
+      const updatedLoans = loans().filter((l) => l.id !== id);
+      setLoans(updatedLoans);
+      await saveLoans(updatedLoans);
+    } catch (err) {
+      console.error("Failed to delete loan:", err);
+    }
+  };
+
   return (
     <div class="flex h-screen w-screen overflow-hidden bg-canvas font-sans text-text-main">
       {/* Sidebar with Transactions Navigation & Accounts */}
@@ -316,6 +403,19 @@ function App() {
           }}
           onNavigateToTransactions={() => {
             setActiveFilter("all");
+            setCurrentView("transactions");
+          }}
+        />
+      ) : currentView() === "loans" ? (
+        <LoansPage
+          loans={loans()}
+          loanPayments={loanPayments()}
+          currencySymbol={userProfile()?.currencySymbol}
+          onOpenAddLoan={() => setIsLoanModalOpen(true)}
+          onOpenRecordPayment={(loan) => setRepayingLoan(loan)}
+          onDeleteLoan={handleDeleteLoan}
+          onNavigateToTransactions={(q) => {
+            if (q) setActiveFilter(q);
             setCurrentView("transactions");
           }}
         />
@@ -407,6 +507,28 @@ function App() {
           onConfirmDelete={(reassignToCatName) =>
             handleDeleteCategory(deletingCategory()!.id, reassignToCatName)
           }
+        />
+      )}
+
+      {/* Loan Creation Modal */}
+      {isLoanModalOpen() && (
+        <LoanModal
+          accounts={accounts()}
+          currencySymbol={userProfile()?.currencySymbol}
+          existingContacts={Array.from(new Set(loans().map((l) => l.contactName)))}
+          onClose={() => setIsLoanModalOpen(false)}
+          onSave={handleCreateLoan}
+        />
+      )}
+
+      {/* Loan Payment Repayment Modal */}
+      {repayingLoan() && (
+        <LoanPaymentModal
+          loan={repayingLoan()!}
+          accounts={accounts()}
+          currencySymbol={userProfile()?.currencySymbol}
+          onClose={() => setRepayingLoan(null)}
+          onSavePayment={handleRecordPayment}
         />
       )}
 

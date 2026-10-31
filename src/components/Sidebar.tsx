@@ -13,6 +13,7 @@ import {
   Clock,
   Flag,
   Tags,
+  HandCoins,
 } from "./icons";
 import { Account, Transaction } from "../types/finance";
 
@@ -20,10 +21,10 @@ interface SidebarProps {
   accounts: Account[];
   transactions: Transaction[];
   activeFilter: string;
-  activeView: "dashboard" | "transactions" | "budgets" | "categories";
+  activeView: "dashboard" | "transactions" | "budgets" | "categories" | "loans";
   userName?: string;
   currencySymbol?: string;
-  onSelectView: (view: "dashboard" | "transactions" | "budgets" | "categories") => void;
+  onSelectView: (view: "dashboard" | "transactions" | "budgets" | "categories" | "loans") => void;
   onSelectFilter: (filterId: string) => void;
   onOpenAddTransaction: () => void;
   onOpenAddAccount?: () => void;
@@ -118,6 +119,19 @@ export const Sidebar: Component<SidebarProps> = (props) => {
           >
             <Tags class={`w-4 h-4 ${props.activeView === "categories" ? "text-primary" : "text-text-subtle"}`} />
             <span>Categories</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => props.onSelectView("loans")}
+            class={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              props.activeView === "loans"
+                ? "bg-primary-light text-primary font-semibold"
+                : "text-text-muted hover:text-text-main hover:bg-card-subtle"
+            }`}
+          >
+            <HandCoins class={`w-4 h-4 ${props.activeView === "loans" ? "text-primary" : "text-text-subtle"}`} />
+            <span>Loans & Debts</span>
           </button>
         </div>
 

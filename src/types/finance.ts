@@ -52,3 +52,29 @@ export interface CategoryItem {
   description?: string;
   isDefault?: boolean;
 }
+
+export type LoanType = "lent" | "borrowed"; // "lent" = they owe you; "borrowed" = you owe them
+export type LoanStatus = "active" | "settled";
+
+export interface LoanRecord {
+  id: string;
+  contactName: string;
+  type: LoanType;
+  initialAmount: number;
+  remainingAmount: number;
+  account: string; // The bank account used to disburse/receive funds
+  startDate: string;
+  dueDate?: string;
+  notes?: string;
+  status: LoanStatus;
+}
+
+export interface LoanPayment {
+  id: string;
+  loanId: string;
+  contactName: string;
+  date: string;
+  amount: number;
+  account: string; // Destination/Source account
+  notes?: string;
+}

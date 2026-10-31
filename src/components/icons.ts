@@ -37,3 +37,5 @@ export { default as SlidersHorizontal } from "lucide-solid/icons/sliders-horizon
 export { default as CircleAlert } from "lucide-solid/icons/circle-alert";
 export { default as Tag } from "lucide-solid/icons/tag";
 export { default as Tags } from "lucide-solid/icons/tags";
+export { default as HandCoins } from "lucide-solid/icons/hand-coins";
+export { default as Users } from "lucide-solid/icons/users";
