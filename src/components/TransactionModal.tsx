@@ -4,6 +4,7 @@ import { Account, Transaction, TransactionType, CategoryItem } from "../types/fi
 import { parseNaturalLanguageTransaction } from "../utils/ai/naturalLanguageParser";
 import { getAIConfig } from "../utils/ai/storage";
 import { AIConfig } from "../utils/ai/types";
+import { notifyLLMCompletion } from "../utils/notifications";
 
 interface TransactionModalProps {
   transaction?: Transaction | null;
@@ -206,6 +207,13 @@ export const TransactionModal: Component<TransactionModalProps> = (props) => {
 
       setHighlightedFields(updated);
       setMagicSuccess(`Auto-filled: ${updated.join(", ")}`);
+
+      if (updated.length > 0) {
+        notifyLLMCompletion({
+          title: "Finly Quick-Add",
+          body: `Auto-populated ${updated.join(", ")} for "${raw.slice(0, 35)}${raw.length > 35 ? "..." : ""}"`,
+        });
+      }
 
       // Clear field highlight animation after 2.5s
       setTimeout(() => {

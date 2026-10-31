@@ -25,6 +25,7 @@ serde_json = "1"
 rusqlite = { version = "0.33", features = ["bundled"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 rfd = "0.15"
+tauri-plugin-notification = "2"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

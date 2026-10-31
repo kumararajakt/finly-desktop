@@ -98,6 +98,7 @@ async fn save_csv_file(default_filename: String, content: String) -> Result<Opti
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let app_data_dir = app
                 .path()

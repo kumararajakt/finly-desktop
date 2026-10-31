@@ -28,6 +28,7 @@ import {
 } from "../utils/ai/advisorContext";
 import { FormattedMessage } from "./FormattedMessage";
 import { parseLocalNaturalLanguage } from "../utils/ai/naturalLanguageParser";
+import { notifyLLMCompletion } from "../utils/notifications";
 
 export interface AskFinlyDrawerProps {
   isOpen: boolean;
@@ -423,6 +424,28 @@ export const AskFinlyDrawer: Component<AskFinlyDrawerProps> = (props) => {
       const finalMsgs = [...updated, botMsg];
       setMessages(finalMsgs);
       saveMessagesToStorage(finalMsgs);
+
+      // Trigger native OS desktop notification via Tauri v2 plugin
+      const { cleanContent, actions } = parseMessageActions(reply);
+      let notifBody = cleanContent.replace(/[*_#`\n]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      if (actions.length > 0) {
+        const firstAction = actions[0];
+        if (firstAction.type === "create_transaction") {
+          notifBody = `Ready to record: ${firstAction.payee} (${symbol()}${firstAction.amount}) under ${firstAction.category}`;
+        } else if (firstAction.type === "update_payee") {
+          notifBody = `Suggested merchant rename: "${firstAction.newPayee}"`;
+        } else if (firstAction.type === "update_category") {
+          notifBody = `Suggested category: "${firstAction.newCategory}"`;
+        }
+      }
+      if (!notifBody) {
+        notifBody = "Analysis and insights are ready in Ask Finly.";
+      }
+
+      notifyLLMCompletion({
+        title: "Finly AI Advisor",
+        body: notifBody,
+      });
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: "err_" + Date.now(),

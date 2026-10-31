@@ -15,6 +15,7 @@ import { LoanPaymentModal } from "./components/LoanPaymentModal";
 import { OnboardingModal } from "./components/OnboardingModal";
 import { SettingsModal } from "./components/SettingsModal";
 import { AskFinlyDrawer } from "./components/AskFinlyDrawer";
+import { requestNotificationPermission } from "./utils/notifications";
 import { getAIConfig } from "./utils/ai/storage";
 import {
   Account,
@@ -136,6 +137,9 @@ function App() {
         }
       };
       await syncAI();
+
+      // Request desktop notification permission if supported
+      requestNotificationPermission().catch(() => {});
 
       if (typeof window !== "undefined") {
         window.addEventListener("finly:ai_config_updated", syncAI);
