@@ -190,15 +190,14 @@ impl DbState {
         )?;
 
         if new_tx.tx_type == "transfer" {
-            let transfer_amt = new_tx.amount.abs();
-            // Source account balance decreases
-            tx.execute(
-                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
-                params![transfer_amt, new_tx.account],
-            )?;
-
-            // Destination account balance increases
-            if let Some(ref to_acc) = new_tx.to_account {
+            let has_to_acc = new_tx.to_account.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+            if has_to_acc {
+                let to_acc = new_tx.to_account.as_ref().unwrap();
+                let transfer_amt = new_tx.amount.abs();
+                tx.execute(
+                    "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                    params![transfer_amt, new_tx.account],
+                )?;
                 let updated = tx.execute(
                     "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
                     params![transfer_amt, to_acc],
@@ -215,6 +214,12 @@ impl DbState {
                         params![acc_id, to_acc, acc_type, transfer_amt],
                     )?;
                 }
+            } else {
+                // Single-account transfer (e.g. Loan to/from friend): apply signed amount directly
+                tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![new_tx.amount, new_tx.account],
+                )?;
             }
         } else {
             // Standard Income / Expense: add amount to account balance
@@ -269,15 +274,22 @@ impl DbState {
 
         if let Some((old_account, old_to_account, old_amount, old_tx_type)) = old {
             if old_tx_type == "transfer" {
-                let old_amt = old_amount.abs();
-                tx.execute(
-                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
-                    params![old_amt, old_account],
-                )?;
-                if let Some(old_to) = old_to_account {
+                let has_old_to = old_to_account.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+                if has_old_to {
+                    let old_to = old_to_account.as_ref().unwrap();
+                    let old_amt = old_amount.abs();
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                        params![old_amt, old_account],
+                    )?;
                     tx.execute(
                         "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
                         params![old_amt, old_to],
+                    )?;
+                } else {
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                        params![old_amount, old_account],
                     )?;
                 }
             } else {
@@ -290,13 +302,14 @@ impl DbState {
 
         // Apply new transaction effect
         if tx_data.tx_type == "transfer" {
-            let new_amt = tx_data.amount.abs();
-            tx.execute(
-                "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
-                params![new_amt, tx_data.account],
-            )?;
-
-            if let Some(ref to_acc) = tx_data.to_account {
+            let has_to_acc = tx_data.to_account.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+            if has_to_acc {
+                let to_acc = tx_data.to_account.as_ref().unwrap();
+                let new_amt = tx_data.amount.abs();
+                tx.execute(
+                    "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                    params![new_amt, tx_data.account],
+                )?;
                 let updated = tx.execute(
                     "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
                     params![new_amt, to_acc],
@@ -313,6 +326,11 @@ impl DbState {
                         params![acc_id, to_acc, acc_type, new_amt],
                     )?;
                 }
+            } else {
+                tx.execute(
+                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                    params![tx_data.amount, tx_data.account],
+                )?;
             }
         } else {
             let updated_rows = tx.execute(
@@ -373,15 +391,22 @@ impl DbState {
 
         if let Some((account, to_account, amount, tx_type)) = found {
             if tx_type == "transfer" {
-                let transfer_amt = amount.abs();
-                tx.execute(
-                    "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
-                    params![transfer_amt, account],
-                )?;
-                if let Some(to_acc) = to_account {
+                let has_to = to_account.as_ref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+                if has_to {
+                    let to_acc = to_account.as_ref().unwrap();
+                    let transfer_amt = amount.abs();
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance + ?1 WHERE name = ?2",
+                        params![transfer_amt, account],
+                    )?;
                     tx.execute(
                         "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
                         params![transfer_amt, to_acc],
+                    )?;
+                } else {
+                    tx.execute(
+                        "UPDATE accounts SET balance = balance - ?1 WHERE name = ?2",
+                        params![amount, account],
                     )?;
                 }
             } else {
