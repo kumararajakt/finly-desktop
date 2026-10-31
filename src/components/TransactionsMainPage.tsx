@@ -15,13 +15,16 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Filter,
+  X,
 } from "./icons";
-import { Transaction, Account } from "../types/finance";
+import { Transaction, Account, CategoryItem } from "../types/finance";
 import { ImportTransactionsModal } from "./ImportTransactionsModal";
 
 interface TransactionsMainPageProps {
   transactions: Transaction[];
   accounts?: Account[];
+  categories?: CategoryItem[];
   activeFilter: string;
   currencySymbol?: string;
   onFilterChange: (filter: string) => void;
@@ -37,6 +40,104 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
   const [searchQuery, setSearchQuery] = createSignal("");
   const [selectedTxId, setSelectedTxId] = createSignal<string | null>(null);
   const [importFile, setImportFile] = createSignal<{ fileName: string; text: string } | null>(null);
+
+  // Advanced Filters State
+  const [showFilters, setShowFilters] = createSignal(false);
+  const [filterAccount, setFilterAccount] = createSignal("");
+  const [filterCategory, setFilterCategory] = createSignal("");
+  const [filterDatePreset, setFilterDatePreset] = createSignal<
+    "all" | "this_month" | "last_month" | "last_30_days" | "this_year" | "custom"
+  >("all");
+  const [customStartDate, setCustomStartDate] = createSignal("");
+  const [customEndDate, setCustomEndDate] = createSignal("");
+  const [filterMinAmount, setFilterMinAmount] = createSignal("");
+  const [filterMaxAmount, setFilterMaxAmount] = createSignal("");
+
+  const activeFiltersCount = () => {
+    let count = 0;
+    if (filterAccount()) count++;
+    if (filterCategory()) count++;
+    if (filterDatePreset() !== "all") count++;
+    if (filterMinAmount()) count++;
+    if (filterMaxAmount()) count++;
+    return count;
+  };
+
+  const clearAllFilters = () => {
+    setFilterAccount("");
+    setFilterCategory("");
+    setFilterDatePreset("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setFilterMinAmount("");
+    setFilterMaxAmount("");
+  };
+
+  const allAccountsList = () => {
+    const list = new Set<string>();
+    props.accounts?.forEach((a) => list.add(a.name));
+    props.transactions.forEach((t) => {
+      if (t.account) list.add(t.account);
+    });
+    return Array.from(list);
+  };
+
+  const allCategoriesList = () => {
+    const list = new Set<string>();
+    props.categories?.forEach((c) => list.add(c.name));
+    props.transactions.forEach((t) => {
+      if (t.category) list.add(t.category);
+    });
+    return Array.from(list);
+  };
+
+  const matchesDatePreset = (txDate: string) => {
+    const preset = filterDatePreset();
+    if (preset === "all") return true;
+    if (!txDate) return false;
+
+    const now = new Date();
+    const tx = new Date(txDate);
+    if (isNaN(tx.getTime())) return true;
+
+    if (preset === "this_month") {
+      return (
+        tx.getFullYear() === now.getFullYear() && tx.getMonth() === now.getMonth()
+      );
+    }
+    if (preset === "last_month") {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return (
+        tx.getFullYear() === lastMonth.getFullYear() &&
+        tx.getMonth() === lastMonth.getMonth()
+      );
+    }
+    if (preset === "last_30_days") {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      return tx >= thirtyDaysAgo && tx <= now;
+    }
+    if (preset === "this_year") {
+      return tx.getFullYear() === now.getFullYear();
+    }
+    if (preset === "custom") {
+      const start = customStartDate();
+      const end = customEndDate();
+      if (start && txDate < start) return false;
+      if (end && txDate > end) return false;
+      return true;
+    }
+    return true;
+  };
+
+  const matchesAmountRange = (amount: number) => {
+    const absAmt = Math.abs(amount);
+    const min = parseFloat(filterMinAmount());
+    const max = parseFloat(filterMaxAmount());
+    if (!isNaN(min) && absAmt < min) return false;
+    if (!isNaN(max) && absAmt > max) return false;
+    return true;
+  };
 
   // Sorting state
   type SortField = "date" | "payee" | "category" | "account" | "amount" | "status";
@@ -101,6 +202,26 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
         const matchesToAcc = tx.toAccount?.toLowerCase().includes(query) ?? false;
         const matchesNotes = tx.notes?.toLowerCase().includes(query) ?? false;
         if (!matchesPayee && !matchesCat && !matchesAcc && !matchesToAcc && !matchesNotes) return false;
+      }
+
+      // Filter by specific account
+      if (filterAccount() && tx.account.toLowerCase() !== filterAccount().toLowerCase()) {
+        return false;
+      }
+
+      // Filter by specific category
+      if (filterCategory() && tx.category.toLowerCase() !== filterCategory().toLowerCase()) {
+        return false;
+      }
+
+      // Filter by date range preset / custom
+      if (!matchesDatePreset(tx.date)) {
+        return false;
+      }
+
+      // Filter by amount range
+      if (!matchesAmountRange(tx.amount)) {
+        return false;
       }
 
       return true;
@@ -178,6 +299,25 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
             />
           </div>
 
+          {/* Filters Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters())}
+            class={`inline-flex items-center gap-1.5 border text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs cursor-pointer ${
+              showFilters() || activeFiltersCount() > 0
+                ? "bg-primary-light border-primary text-primary"
+                : "bg-card hover:bg-card-subtle border-card-border text-text-muted hover:text-text-main"
+            }`}
+          >
+            <Filter class="w-3.5 h-3.5" />
+            <span>Filters</span>
+            <Show when={activeFiltersCount() > 0}>
+              <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-white">
+                {activeFiltersCount()}
+              </span>
+            </Show>
+          </button>
+
           <label class="inline-flex items-center gap-1.5 bg-card hover:bg-card-subtle border border-card-border text-text-muted hover:text-text-main text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs cursor-pointer">
             <Upload class="w-3.5 h-3.5" />
             <span>Import CSV</span>
@@ -203,6 +343,146 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
           </button>
         </div>
       </div>
+
+      {/* Advanced Filter Panel */}
+      <Show when={showFilters()}>
+        <div class="bg-card rounded-2xl border border-card-border p-4 shadow-xs space-y-3 animate-in fade-in duration-150">
+          <div class="flex items-center justify-between border-b border-card-border pb-2.5">
+            <div class="flex items-center gap-2">
+              <Filter class="w-4 h-4 text-primary" />
+              <span class="text-xs font-bold text-text-main uppercase tracking-wider">
+                Filter Transactions
+              </span>
+              <Show when={activeFiltersCount() > 0}>
+                <span class="text-[11px] text-text-muted">
+                  ({activeFiltersCount()} active filter{activeFiltersCount() > 1 ? "s" : ""})
+                </span>
+              </Show>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <Show when={activeFiltersCount() > 0}>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  class="text-[11px] font-semibold text-rose-500 hover:text-rose-600 hover:underline cursor-pointer"
+                >
+                  Reset all filters
+                </button>
+              </Show>
+              <button
+                type="button"
+                onClick={() => setShowFilters(false)}
+                class="p-1 rounded-lg text-text-subtle hover:text-text-main hover:bg-card-subtle transition cursor-pointer"
+              >
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Account Filter */}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                Account
+              </label>
+              <select
+                value={filterAccount()}
+                onChange={(e) => setFilterAccount(e.currentTarget.value)}
+                class="w-full bg-card-subtle border border-card-border rounded-xl px-3 py-1.5 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                <option value="">All Accounts</option>
+                <For each={allAccountsList()}>
+                  {(acc) => <option value={acc}>{acc}</option>}
+                </For>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                Category
+              </label>
+              <select
+                value={filterCategory()}
+                onChange={(e) => setFilterCategory(e.currentTarget.value)}
+                class="w-full bg-card-subtle border border-card-border rounded-xl px-3 py-1.5 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                <option value="">All Categories</option>
+                <For each={allCategoriesList()}>
+                  {(cat) => <option value={cat}>{cat}</option>}
+                </For>
+              </select>
+            </div>
+
+            {/* Date Preset Filter */}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                Date Range
+              </label>
+              <select
+                value={filterDatePreset()}
+                onChange={(e) => setFilterDatePreset(e.currentTarget.value as any)}
+                class="w-full bg-card-subtle border border-card-border rounded-xl px-3 py-1.5 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                <option value="all">All Time</option>
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="last_30_days">Last 30 Days</option>
+                <option value="this_year">This Year</option>
+                <option value="custom">Custom Date Range...</option>
+              </select>
+            </div>
+
+            {/* Amount Range */}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                Amount ({symbol()})
+              </label>
+              <div class="grid grid-cols-2 gap-1.5">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filterMinAmount()}
+                  onInput={(e) => setFilterMinAmount(e.currentTarget.value)}
+                  class="w-full bg-card-subtle border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filterMaxAmount()}
+                  onInput={(e) => setFilterMaxAmount(e.currentTarget.value)}
+                  class="w-full bg-card-subtle border border-card-border rounded-xl px-2.5 py-1.5 text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Date Inputs (when Custom Range selected) */}
+          <Show when={filterDatePreset() === "custom"}>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-card-border">
+              <div class="space-y-1">
+                <label class="block text-[11px] text-text-muted">Start Date</label>
+                <input
+                  type="date"
+                  value={customStartDate()}
+                  onInput={(e) => setCustomStartDate(e.currentTarget.value)}
+                  class="w-full bg-card-subtle border border-card-border rounded-xl px-3 py-1.5 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="block text-[11px] text-text-muted">End Date</label>
+                <input
+                  type="date"
+                  value={customEndDate()}
+                  onInput={(e) => setCustomEndDate(e.currentTarget.value)}
+                  class="w-full bg-card-subtle border border-card-border rounded-xl px-3 py-1.5 text-xs text-text-main focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </Show>
+        </div>
+      </Show>
 
       {/* KPI Stat Cards (Matching theme from screenshot) */}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

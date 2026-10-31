@@ -423,6 +423,7 @@ function App() {
         <TransactionsMainPage
           transactions={transactions()}
           accounts={accounts()}
+          categories={categories()}
           activeFilter={activeFilter()}
           currencySymbol={userProfile()?.currencySymbol}
           onFilterChange={(filter) => setActiveFilter(filter)}
