@@ -185,7 +185,7 @@ export const CategoryModal: Component<CategoryModalProps> = (props) => {
                       class="w-7 h-7 rounded-lg transition-transform hover:scale-110 flex items-center justify-center cursor-pointer shadow-xs"
                       style={{ "background-color": c }}
                     >
-                      {isSelected() && <Check class="w-4 h-4 text-white stroke-[3]" />}
+                      {isSelected() && <Check class="w-4 h-4 text-white stroke-3" />}
                     </button>
                   );
                 }}

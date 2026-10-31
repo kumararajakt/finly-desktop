@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  CheckCircle2,
   CircleAlert,
   FileSpreadsheet,
   Eye,
@@ -20,8 +19,6 @@ import {
   detectDefaultMapping,
   convertRowsToTransactions,
   ColumnMappingConfig,
-  AmountMode,
-  ParsedTransactionRow,
 } from "../utils/csv";
 
 interface ImportTransactionsModalProps {
@@ -87,7 +84,6 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
   const filteredPreviewRows = createMemo(() => {
     const q = previewSearch().toLowerCase().trim();
     const f = previewFilter();
-    const sel = selectedRowIds();
 
     return currentItems().filter((item) => {
       // Filter by type
@@ -680,7 +676,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Debit Column */}
                       <div class="space-y-1">
-                        <label class="block text-xs font-medium text-text-main flex items-center gap-1.5">
+                        <label class="text-xs font-medium text-text-main flex items-center gap-1.5">
                           <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                           <span>Debit / Outflow Column (Expenses)</span>
                         </label>
@@ -698,7 +694,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
 
                       {/* Credit Column */}
                       <div class="space-y-1">
-                        <label class="block text-xs font-medium text-text-main flex items-center gap-1.5">
+                        <label class="text-xs font-medium text-text-main flex items-center gap-1.5">
                           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                           <span>Credit / Inflow Column (Income)</span>
                         </label>
@@ -999,7 +995,7 @@ export const ImportTransactionsModal: Component<ImportTransactionsModalProps> = 
                                   {item.transaction.category}
                                 </span>
                               </td>
-                              <td class="py-2 px-3 whitespace-nowrap text-text-muted truncate max-w-[110px]">
+                              <td class="py-2 px-3 whitespace-nowrap text-text-muted truncate max-w-27.5">
                                 {item.transaction.account}
                               </td>
                               <td class="py-2 px-3 text-right whitespace-nowrap font-bold">

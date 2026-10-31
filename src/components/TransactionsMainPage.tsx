@@ -414,7 +414,7 @@ export const TransactionsMainPage: Component<TransactionsMainPageProps> = (props
                         {isTransfer && tx.toAccount ? (
                           <div class="inline-flex items-center gap-1.5 font-medium">
                             <span class="text-text-main">{tx.account}</span>
-                            <ArrowLeftRight class="w-3 h-3 text-primary flex-shrink-0" />
+                            <ArrowLeftRight class="w-3 h-3 text-primary shrink-0" />
                             <span class="text-primary font-semibold">{tx.toAccount}</span>
                           </div>
                         ) : (
