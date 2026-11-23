@@ -11,6 +11,14 @@
 #include <KLocalizedQmlContext>
 #include <KLocalizedString>
 
+#include "core/DatabaseManager.h"
+#include "core/SettingsManager.h"
+#include "models/AccountModel.h"
+#include "models/BudgetModel.h"
+#include "models/CategoryModel.h"
+#include "models/LoanModel.h"
+#include "models/TransactionModel.h"
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -36,8 +44,41 @@ int main(int argc, char *argv[])
     }
 
 
+    Finly::DatabaseManager db;
+    if (!db.initialize()) {
+        qFatal("Failed to initialize Finly SQLite database: %s", qPrintable(db.lastError()));
+    }
+
+    Finly::SettingsManager settingsMgr(&db);
+    settingsMgr.load();
+
+    Finly::AccountModel accountModel(&db);
+    accountModel.refresh();
+
+    Finly::TransactionModel transactionModel(&db, &accountModel);
+    transactionModel.refresh();
+
+    Finly::TransactionFilterProxyModel transactionFilter;
+    transactionFilter.setSourceModel(&transactionModel);
+
+    Finly::BudgetModel budgetModel(&db, &transactionModel);
+    budgetModel.load();
+
+    Finly::CategoryModel categoryModel(&db, &transactionModel);
+    categoryModel.load();
+
+    Finly::LoanModel loanModel(&db, &transactionModel);
+    loanModel.load();
+
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
+    engine.rootContext()->setContextProperty(QStringLiteral("SettingsMgr"), &settingsMgr);
+    engine.rootContext()->setContextProperty(QStringLiteral("Accounts"), &accountModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("Transactions"), &transactionModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("TransactionFilter"), &transactionFilter);
+    engine.rootContext()->setContextProperty(QStringLiteral("Budgets"), &budgetModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("Categories"), &categoryModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("Loans"), &loanModel);
     engine.loadFromModule("com.kumar.finly", "Main");
 
     if (engine.rootObjects().isEmpty()) {

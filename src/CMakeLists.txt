@@ -1,5 +1,12 @@
 add_executable(finly
     main.cpp
+    core/DatabaseManager.cpp
+    core/SettingsManager.cpp
+    models/AccountModel.cpp
+    models/TransactionModel.cpp
+    models/BudgetModel.cpp
+    models/CategoryModel.cpp
+    models/LoanModel.cpp
 )
 
 set_source_files_properties(qml/Main.qml PROPERTIES
