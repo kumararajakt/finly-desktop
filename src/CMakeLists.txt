@@ -16,6 +16,16 @@ set_source_files_properties(qml/pages/TransactionsPage.qml PROPERTIES QT_RESOURC
 set_source_files_properties(qml/pages/BudgetsPage.qml PROPERTIES QT_RESOURCE_ALIAS BudgetsPage.qml)
 set_source_files_properties(qml/pages/CategoriesPage.qml PROPERTIES QT_RESOURCE_ALIAS CategoriesPage.qml)
 set_source_files_properties(qml/pages/LoansPage.qml PROPERTIES QT_RESOURCE_ALIAS LoansPage.qml)
+set_source_files_properties(qml/dialogs/OnboardingDialog.qml PROPERTIES QT_RESOURCE_ALIAS OnboardingDialog.qml)
+set_source_files_properties(qml/dialogs/AccountDialog.qml PROPERTIES QT_RESOURCE_ALIAS AccountDialog.qml)
+set_source_files_properties(qml/dialogs/TransactionDialog.qml PROPERTIES QT_RESOURCE_ALIAS TransactionDialog.qml)
+set_source_files_properties(qml/dialogs/BudgetDialog.qml PROPERTIES QT_RESOURCE_ALIAS BudgetDialog.qml)
+set_source_files_properties(qml/dialogs/CategoryDialog.qml PROPERTIES QT_RESOURCE_ALIAS CategoryDialog.qml)
+set_source_files_properties(qml/dialogs/DeleteCategoryDialog.qml PROPERTIES QT_RESOURCE_ALIAS DeleteCategoryDialog.qml)
+set_source_files_properties(qml/dialogs/LoanDialog.qml PROPERTIES QT_RESOURCE_ALIAS LoanDialog.qml)
+set_source_files_properties(qml/dialogs/LoanPaymentDialog.qml PROPERTIES QT_RESOURCE_ALIAS LoanPaymentDialog.qml)
+set_source_files_properties(qml/dialogs/SettingsDialog.qml PROPERTIES QT_RESOURCE_ALIAS SettingsDialog.qml)
+set_source_files_properties(qml/dialogs/ImportCsvDialog.qml PROPERTIES QT_RESOURCE_ALIAS ImportCsvDialog.qml)
 
 qt_add_qml_module(finly
     URI com.kumar.finly
@@ -28,6 +38,16 @@ qt_add_qml_module(finly
         qml/pages/BudgetsPage.qml
         qml/pages/CategoriesPage.qml
         qml/pages/LoansPage.qml
+        qml/dialogs/OnboardingDialog.qml
+        qml/dialogs/AccountDialog.qml
+        qml/dialogs/TransactionDialog.qml
+        qml/dialogs/BudgetDialog.qml
+        qml/dialogs/CategoryDialog.qml
+        qml/dialogs/DeleteCategoryDialog.qml
+        qml/dialogs/LoanDialog.qml
+        qml/dialogs/LoanPaymentDialog.qml
+        qml/dialogs/SettingsDialog.qml
+        qml/dialogs/ImportCsvDialog.qml
 )
 
 target_link_libraries(finly PRIVATE
