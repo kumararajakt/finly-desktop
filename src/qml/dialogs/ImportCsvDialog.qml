@@ -12,12 +12,21 @@ Kirigami.Dialog {
     property var csvRows: []
     property string sampleText: ""
     property bool showSample: false
+
+    // Mapping Config
+    property string accountSource: "fixed"   // "fixed" | "column"
+    property string categorySource: "auto"   // "auto" | "column"
+    property string amountMode: "single"     // "single" | "double" | "type_column"
+
+    // Preview State
     property var mappedRows: []
+    property string previewSearch: ""
+    property string previewFilter: "all"     // "all" | "expense" | "income"
 
     title: i18n("Import Transactions (CSV)")
     standardButtons: Kirigami.Dialog.Cancel
-    preferredWidth: 760
-    preferredHeight: 560
+    preferredWidth: 820
+    preferredHeight: 620
     padding: Kirigami.Units.largeSpacing
 
     function pickAndLoadCsv() {
@@ -36,35 +45,90 @@ Kirigami.Dialog {
 
         dateColCombo.model = csvHeaders;
         payeeColCombo.model = csvHeaders;
-        amountColCombo.model = csvHeaders;
         notesColCombo.model = [""].concat(csvHeaders);
+        accountColCombo.model = csvHeaders;
         fixedAccountCombo.model = Accounts.accountNames();
+        categoryColCombo.model = csvHeaders;
 
-        // Auto-guess columns
+        singleAmountColCombo.model = csvHeaders;
+        debitColCombo.model = csvHeaders;
+        creditColCombo.model = csvHeaders;
+        typeModeAmountColCombo.model = csvHeaders;
+        typeColCombo.model = csvHeaders;
+
+        // Auto-detect columns & amount mode
+        var hasDebit = -1;
+        var hasCredit = -1;
+        var hasTypeCol = -1;
         for (var i = 0; i < csvHeaders.length; ++i) {
             var h = csvHeaders[i].toLowerCase();
             if (h.indexOf("date") !== -1) dateColCombo.currentIndex = i;
             if (h.indexOf("payee") !== -1 || h.indexOf("desc") !== -1 || h.indexOf("merchant") !== -1 || h.indexOf("narration") !== -1) payeeColCombo.currentIndex = i;
-            if (h.indexOf("amount") !== -1 || h.indexOf("value") !== -1) amountColCombo.currentIndex = i;
+            if (h.indexOf("note") !== -1 || h.indexOf("memo") !== -1 || h.indexOf("remark") !== -1) notesColCombo.currentIndex = i + 1;
+            if (h.indexOf("account") !== -1) accountColCombo.currentIndex = i;
+            if (h.indexOf("category") !== -1) categoryColCombo.currentIndex = i;
+            if (h.indexOf("amount") !== -1 || h.indexOf("value") !== -1) {
+                singleAmountColCombo.currentIndex = i;
+                typeModeAmountColCombo.currentIndex = i;
+            }
+            if (h.indexOf("debit") !== -1 || h.indexOf("withdrawal") !== -1 || h === "dr") hasDebit = i;
+            if (h.indexOf("credit") !== -1 || h.indexOf("deposit") !== -1 || h === "cr") hasCredit = i;
+            if (h === "type" || h.indexOf("dr/cr") !== -1 || h.indexOf("cr/dr") !== -1) hasTypeCol = i;
         }
+
+        if (hasDebit >= 0 && hasCredit >= 0) {
+            amountMode = "double";
+            debitColCombo.currentIndex = hasDebit;
+            creditColCombo.currentIndex = hasCredit;
+        } else if (hasTypeCol >= 0) {
+            amountMode = "type_column";
+            typeColCombo.currentIndex = hasTypeCol;
+        } else {
+            amountMode = "single";
+        }
+    }
+
+    function parseNumber(val) {
+        var s = String(val || "").replace(/[^0-9.\-]/g, "");
+        return parseFloat(s) || 0.0;
     }
 
     function buildPreviewRows() {
         var out = [];
         var dCol = dateColCombo.currentText;
         var pCol = payeeColCombo.currentText;
-        var aCol = amountColCombo.currentText;
         var nCol = notesColCombo.currentText;
-        var acc = fixedAccountCombo.currentText || "Checking";
 
         for (var i = 0; i < csvRows.length; ++i) {
             var r = csvRows[i];
-            var rawAmt = String(r[aCol] || "0").replace(/[^0-9.\-]/g, "");
-            var amt = parseFloat(rawAmt) || 0.0;
-            if (invertSignCheck.checked) amt = -amt;
+            var amt = 0.0;
+
+            if (amountMode === "single") {
+                amt = parseNumber(r[singleAmountColCombo.currentText]);
+                if (invertSignCheck.checked) amt = -amt;
+            } else if (amountMode === "double") {
+                var deb = Math.abs(parseNumber(r[debitColCombo.currentText]));
+                var cred = Math.abs(parseNumber(r[creditColCombo.currentText]));
+                amt = cred > 0 ? cred : (deb > 0 ? -deb : 0.0);
+            } else if (amountMode === "type_column") {
+                var rawA = Math.abs(parseNumber(r[typeModeAmountColCombo.currentText]));
+                var tVal = String(r[typeColCombo.currentText] || "").toLowerCase().trim();
+                var credList = creditIndField.text.toLowerCase().split(",");
+                var debList = debitIndField.text.toLowerCase().split(",");
+                var isCredit = credList.some(function(ind) { return ind.trim().length > 0 && tVal.indexOf(ind.trim()) !== -1; });
+                var isDebit = debList.some(function(ind) { return ind.trim().length > 0 && tVal.indexOf(ind.trim()) !== -1; });
+                amt = isCredit && !isDebit ? rawA : -rawA;
+            }
+
             var payee = String(r[pCol] || "Imported").trim();
             var notes = nCol.length > 0 ? String(r[nCol] || "").trim() : "";
-            var cat = CsvSvc.guessCategory(payee, notes);
+            var acc = accountSource === "column"
+                ? String(r[accountColCombo.currentText] || "Checking").trim()
+                : (fixedAccountCombo.currentText || "Checking");
+            var cat = categorySource === "column"
+                ? (String(r[categoryColCombo.currentText] || "").trim() || CsvSvc.guessCategory(payee, notes))
+                : CsvSvc.guessCategory(payee, notes);
+
             out.push({
                 id: "imp-" + i,
                 selected: amt !== 0,
@@ -82,6 +146,20 @@ Kirigami.Dialog {
         }
         mappedRows = out;
         step = 1;
+    }
+
+    function filteredPreviewRows() {
+        var q = previewSearch.toLowerCase().trim();
+        return mappedRows.filter(function(r) {
+            if (previewFilter === "expense" && r.amount >= 0) return false;
+            if (previewFilter === "income" && r.amount < 0) return false;
+            if (q.length > 0) {
+                return r.payee.toLowerCase().indexOf(q) !== -1
+                    || r.category.toLowerCase().indexOf(q) !== -1
+                    || r.account.toLowerCase().indexOf(q) !== -1;
+            }
+            return true;
+        });
     }
 
     Connections {
@@ -107,6 +185,7 @@ Kirigami.Dialog {
     ColumnLayout {
         spacing: Kirigami.Units.mediumSpacing
 
+        // Header Stepper & File Picker
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -133,84 +212,260 @@ Kirigami.Dialog {
         }
 
         // Step 1: Review & Map
-        ColumnLayout {
+        Controls.ScrollView {
             visible: dialog.step === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Kirigami.Units.mediumSpacing
-
-            Kirigami.PlaceholderMessage {
-                visible: dialog.csvRows.length === 0
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                icon.name: "document-import"
-                text: i18n("Select a CSV bank statement")
-                helpfulAction: Kirigami.Action {
-                    text: i18n("Choose CSV File...")
-                    icon.name: "document-open"
-                    onTriggered: dialog.pickAndLoadCsv()
-                }
-            }
+            contentWidth: availableWidth
+            clip: true
 
             ColumnLayout {
-                visible: dialog.csvRows.length > 0
-                Layout.fillWidth: true
-                spacing: Kirigami.Units.smallSpacing
+                width: parent.width
+                spacing: Kirigami.Units.mediumSpacing
 
-                RowLayout {
-                    Controls.Label { text: i18n("Loaded %1 rows from %2", dialog.csvRows.length, dialog.fileName); font.bold: true }
-                    Controls.ToolButton {
-                        text: dialog.showSample ? i18n("Hide sample") : i18n("Show sample")
-                        onClicked: dialog.showSample = !dialog.showSample
-                    }
-                }
-
-                Controls.TextArea {
-                    visible: dialog.showSample
+                Kirigami.PlaceholderMessage {
+                    visible: dialog.csvRows.length === 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 80
-                    readOnly: true
-                    text: dialog.sampleText
+                    Layout.topMargin: Kirigami.Units.gridUnit * 3
+                    icon.name: "document-import"
+                    text: i18n("Select a CSV bank statement")
+                    helpfulAction: Kirigami.Action {
+                        text: i18n("Choose CSV File...")
+                        icon.name: "document-open"
+                        onTriggered: dialog.pickAndLoadCsv()
+                    }
                 }
 
-                Kirigami.FormLayout {
+                ColumnLayout {
+                    visible: dialog.csvRows.length > 0
                     Layout.fillWidth: true
-                    Controls.ComboBox { id: dateColCombo; Kirigami.FormData.label: i18n("Date Column:") }
-                    Controls.ComboBox {
-                        id: dateFormatCombo
-                        Kirigami.FormData.label: i18n("Date Format:")
-                        textRole: "label"
-                        valueRole: "id"
-                        model: [
-                            { id: "auto", label: i18n("Auto-detect") },
-                            { id: "YYYY-MM-DD", label: "YYYY-MM-DD" },
-                            { id: "DD/MM/YYYY", label: "DD/MM/YYYY" },
-                            { id: "MM/DD/YYYY", label: "MM/DD/YYYY" }
-                        ]
-                    }
-                    Controls.ComboBox { id: payeeColCombo; Kirigami.FormData.label: i18n("Payee Column:") }
-                    Controls.ComboBox { id: amountColCombo; Kirigami.FormData.label: i18n("Amount Column:") }
-                    Controls.CheckBox { id: invertSignCheck; text: i18n("Invert amount sign (positive = expense)") }
-                    Controls.ComboBox { id: notesColCombo; Kirigami.FormData.label: i18n("Notes Column:") }
-                    Controls.ComboBox { id: fixedAccountCombo; Kirigami.FormData.label: i18n("Target Account:") }
-                    Controls.ComboBox {
-                        id: statusCombo
-                        Kirigami.FormData.label: i18n("Default Status:")
-                        textRole: "label"
-                        valueRole: "id"
-                        model: [
-                            { id: "cleared", label: i18n("Cleared") },
-                            { id: "pending", label: i18n("Pending") },
-                            { id: "reconciled", label: i18n("Reconciled") }
-                        ]
-                    }
-                }
+                    spacing: Kirigami.Units.mediumSpacing
 
-                Controls.Button {
-                    Layout.alignment: Qt.AlignRight
-                    text: i18n("Continue to Preview →")
-                    highlighted: true
-                    onClicked: dialog.buildPreviewRows()
+                    RowLayout {
+                        Controls.Label { text: i18n("Loaded %1 rows from %2", dialog.csvRows.length, dialog.fileName); font.bold: true }
+                        Controls.ToolButton {
+                            text: dialog.showSample ? i18n("Hide sample") : i18n("Show sample")
+                            onClicked: dialog.showSample = !dialog.showSample
+                        }
+                    }
+
+                    Kirigami.AbstractCard {
+                        visible: dialog.showSample && dialog.csvHeaders.length > 0
+                        Layout.fillWidth: true
+
+                        contentItem: Controls.ScrollView {
+                            Layout.fillWidth: true
+                            implicitHeight: Math.min(180, sampleTableCol.implicitHeight + 8)
+                            clip: true
+
+                            ColumnLayout {
+                                id: sampleTableCol
+                                spacing: 0
+
+                                RowLayout {
+                                    spacing: Kirigami.Units.mediumSpacing
+                                    Repeater {
+                                        model: dialog.csvHeaders
+                                        delegate: Controls.Label {
+                                            required property string modelData
+                                            Layout.preferredWidth: 130
+                                            text: modelData
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                }
+
+                                Kirigami.Separator {
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: 4
+                                    Layout.bottomMargin: 4
+                                }
+
+                                Repeater {
+                                    model: dialog.csvRows.slice(0, 4)
+                                    delegate: ColumnLayout {
+                                        id: sampleRowDelegate
+                                        required property var modelData
+                                        spacing: 0
+
+                                        RowLayout {
+                                            spacing: Kirigami.Units.mediumSpacing
+                                            Repeater {
+                                                model: dialog.csvHeaders
+                                                delegate: Controls.Label {
+                                                    required property string modelData
+                                                    Layout.preferredWidth: 130
+                                                    text: String(sampleRowDelegate.modelData[modelData] || "")
+                                                    font.pixelSize: 11
+                                                    opacity: 0.85
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+                                        }
+
+                                        Kirigami.Separator {
+                                            Layout.fillWidth: true
+                                            Layout.topMargin: 3
+                                            Layout.bottomMargin: 3
+                                            opacity: 0.4
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Core Column Mapping
+                    Kirigami.FormLayout {
+                        Layout.fillWidth: true
+
+                        Controls.ComboBox { id: dateColCombo; Kirigami.FormData.label: i18n("Date Column:") }
+                        Controls.ComboBox {
+                            id: dateFormatCombo
+                            Kirigami.FormData.label: i18n("Date Format:")
+                            textRole: "label"
+                            valueRole: "id"
+                            model: [
+                                { id: "auto", label: i18n("Auto-detect") },
+                                { id: "YYYY-MM-DD", label: "YYYY-MM-DD" },
+                                { id: "DD/MM/YYYY", label: "DD/MM/YYYY" },
+                                { id: "MM/DD/YYYY", label: "MM/DD/YYYY" }
+                            ]
+                        }
+                        Controls.ComboBox { id: payeeColCombo; Kirigami.FormData.label: i18n("Payee Column:") }
+                        Controls.ComboBox { id: notesColCombo; Kirigami.FormData.label: i18n("Notes Column:") }
+
+                        // Account Source Radios
+                        RowLayout {
+                            Kirigami.FormData.label: i18n("Account Source:")
+                            Controls.RadioButton {
+                                text: i18n("Specific Account")
+                                checked: dialog.accountSource === "fixed"
+                                onClicked: dialog.accountSource = "fixed"
+                            }
+                            Controls.RadioButton {
+                                text: i18n("From CSV Column")
+                                checked: dialog.accountSource === "column"
+                                onClicked: dialog.accountSource = "column"
+                            }
+                        }
+                        Controls.ComboBox {
+                            id: fixedAccountCombo
+                            visible: dialog.accountSource === "fixed"
+                            Kirigami.FormData.label: i18n("Target Account:")
+                        }
+                        Controls.ComboBox {
+                            id: accountColCombo
+                            visible: dialog.accountSource === "column"
+                            Kirigami.FormData.label: i18n("Account Column:")
+                        }
+
+                        // Category Source Radios
+                        RowLayout {
+                            Kirigami.FormData.label: i18n("Category Source:")
+                            Controls.RadioButton {
+                                text: i18n("Smart Auto")
+                                checked: dialog.categorySource === "auto"
+                                onClicked: dialog.categorySource = "auto"
+                            }
+                            Controls.RadioButton {
+                                text: i18n("CSV Column")
+                                checked: dialog.categorySource === "column"
+                                onClicked: dialog.categorySource = "column"
+                            }
+                        }
+                        Controls.ComboBox {
+                            id: categoryColCombo
+                            visible: dialog.categorySource === "column"
+                            Kirigami.FormData.label: i18n("Category Column:")
+                        }
+
+                        Controls.ComboBox {
+                            id: statusCombo
+                            Kirigami.FormData.label: i18n("Default Status:")
+                            textRole: "label"
+                            valueRole: "id"
+                            model: [
+                                { id: "cleared", label: i18n("Cleared") },
+                                { id: "pending", label: i18n("Pending") },
+                                { id: "reconciled", label: i18n("Reconciled") }
+                            ]
+                        }
+                    }
+
+                    // Amount Mapping Modes (matches Tauri 3-mode selector)
+                    Kirigami.AbstractCard {
+                        Layout.fillWidth: true
+                        contentItem: ColumnLayout {
+                            spacing: Kirigami.Units.smallSpacing
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Controls.Label { Layout.fillWidth: true; text: i18n("Amount Mapping"); font.bold: true }
+                                Controls.Button {
+                                    text: i18n("Single Column")
+                                    checkable: true
+                                    checked: dialog.amountMode === "single"
+                                    onClicked: dialog.amountMode = "single"
+                                }
+                                Controls.Button {
+                                    text: i18n("Debit / Credit")
+                                    checkable: true
+                                    checked: dialog.amountMode === "double"
+                                    onClicked: dialog.amountMode = "double"
+                                }
+                                Controls.Button {
+                                    text: i18n("Type Column")
+                                    checkable: true
+                                    checked: dialog.amountMode === "type_column"
+                                    onClicked: dialog.amountMode = "type_column"
+                                }
+                            }
+
+                            // Single Column Mode
+                            Kirigami.FormLayout {
+                                visible: dialog.amountMode === "single"
+                                Layout.fillWidth: true
+                                Controls.ComboBox { id: singleAmountColCombo; Kirigami.FormData.label: i18n("Amount Column:") }
+                                Controls.CheckBox { id: invertSignCheck; text: i18n("Invert sign (positive values are expenses)") }
+                            }
+
+                            // Double Column (Debit / Credit) Mode
+                            Kirigami.FormLayout {
+                                visible: dialog.amountMode === "double"
+                                Layout.fillWidth: true
+                                Controls.ComboBox { id: debitColCombo; Kirigami.FormData.label: i18n("Debit / Withdrawal Column:") }
+                                Controls.ComboBox { id: creditColCombo; Kirigami.FormData.label: i18n("Credit / Deposit Column:") }
+                            }
+
+                            // Type Column Mode
+                            Kirigami.FormLayout {
+                                visible: dialog.amountMode === "type_column"
+                                Layout.fillWidth: true
+                                Controls.ComboBox { id: typeModeAmountColCombo; Kirigami.FormData.label: i18n("Amount Column:") }
+                                Controls.ComboBox { id: typeColCombo; Kirigami.FormData.label: i18n("Dr/Cr Type Column:") }
+                                Controls.TextField {
+                                    id: creditIndField
+                                    Kirigami.FormData.label: i18n("Credit Indicators:")
+                                    text: "credit,cr,deposit,income"
+                                }
+                                Controls.TextField {
+                                    id: debitIndField
+                                    Kirigami.FormData.label: i18n("Debit Indicators:")
+                                    text: "debit,dr,withdrawal,expense"
+                                }
+                            }
+                        }
+                    }
+
+                    Controls.Button {
+                        Layout.alignment: Qt.AlignRight
+                        text: i18n("Continue to Preview →")
+                        highlighted: true
+                        onClicked: dialog.buildPreviewRows()
+                    }
                 }
             }
         }
@@ -224,11 +479,33 @@ Kirigami.Dialog {
 
             RowLayout {
                 Layout.fillWidth: true
-                Controls.Label {
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.SearchField {
                     Layout.fillWidth: true
-                    text: i18n("Review %1 parsed transactions", dialog.mappedRows.length)
-                    font.bold: true
+                    placeholderText: i18n("Search preview records...")
+                    onTextChanged: dialog.previewSearch = text
                 }
+
+                Controls.Button {
+                    text: i18n("All")
+                    checkable: true
+                    checked: dialog.previewFilter === "all"
+                    onClicked: dialog.previewFilter = "all"
+                }
+                Controls.Button {
+                    text: i18n("Expense")
+                    checkable: true
+                    checked: dialog.previewFilter === "expense"
+                    onClicked: dialog.previewFilter = "expense"
+                }
+                Controls.Button {
+                    text: i18n("Income")
+                    checkable: true
+                    checked: dialog.previewFilter === "income"
+                    onClicked: dialog.previewFilter = "income"
+                }
+
                 Controls.Button {
                     visible: SettingsMgr.aiEnabled
                     text: i18n("AI Smart Categorize")
@@ -249,9 +526,8 @@ Kirigami.Dialog {
                 clip: true
 
                 ListView {
-                    model: dialog.mappedRows
+                    model: dialog.filteredPreviewRows()
                     delegate: RowLayout {
-                        required property int index
                         required property var modelData
                         width: ListView.view.width
                         spacing: Kirigami.Units.smallSpacing
@@ -260,13 +536,34 @@ Kirigami.Dialog {
                             checked: modelData.selected
                             onToggled: {
                                 var copy = dialog.mappedRows.slice();
-                                copy[index].selected = checked;
+                                for (var i = 0; i < copy.length; ++i) {
+                                    if (copy[i].id === modelData.id) {
+                                        copy[i].selected = checked;
+                                        break;
+                                    }
+                                }
                                 dialog.mappedRows = copy;
                             }
                         }
                         Controls.Label { text: modelData.date; Layout.preferredWidth: 85; font.pixelSize: 11 }
                         Controls.Label { text: modelData.payee; Layout.fillWidth: true; elide: Text.ElideRight }
-                        Controls.Label { text: modelData.category; Layout.preferredWidth: 110; font.pixelSize: 11 }
+                        Controls.Label { text: modelData.account; Layout.preferredWidth: 100; font.pixelSize: 11; opacity: 0.75; elide: Text.ElideRight }
+                        Controls.ComboBox {
+                            Layout.preferredWidth: 130
+                            model: Categories.categoryNames()
+                            currentIndex: Math.max(0, Categories.categoryNames().indexOf(modelData.category))
+                            onActivated: {
+                                var copy = dialog.mappedRows.slice();
+                                for (var i = 0; i < copy.length; ++i) {
+                                    if (copy[i].id === modelData.id) {
+                                        copy[i].category = currentText;
+                                        copy[i].categoryColor = Categories.colorForCategory(currentText);
+                                        break;
+                                    }
+                                }
+                                dialog.mappedRows = copy;
+                            }
+                        }
                         Controls.Label {
                             text: root.formatMoney(modelData.amount)
                             Layout.preferredWidth: 90
@@ -285,7 +582,7 @@ Kirigami.Dialog {
                 }
                 Item { Layout.fillWidth: true }
                 Controls.Button {
-                    text: i18n("Import Selected")
+                    text: i18n("Import %1 Transactions", dialog.mappedRows.filter(function(r) { return r.selected; }).length)
                     icon.name: "dialog-ok-apply"
                     highlighted: true
                     onClicked: {
