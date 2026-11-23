@@ -9,15 +9,15 @@ add_executable(finly
     models/LoanModel.cpp
 )
 
-set_source_files_properties(qml/Main.qml PROPERTIES
-    QT_RESOURCE_ALIAS Main.qml
-)
+set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/GlobalSidebar.qml PROPERTIES QT_RESOURCE_ALIAS GlobalSidebar.qml)
 
 qt_add_qml_module(finly
     URI com.kumar.finly
     VERSION 1.0
     QML_FILES
         qml/Main.qml
+        qml/GlobalSidebar.qml
 )
 
 target_link_libraries(finly PRIVATE
