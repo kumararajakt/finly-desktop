@@ -7,7 +7,9 @@ Kirigami.OverlayDrawer {
     id: drawer
 
     edge: Qt.RightEdge
-    modal: false
+    modal: true
+    drawerOpen: false
+    visible: SettingsMgr.aiEnabled && drawerOpen
     width: Math.min(440, root.width * 0.85)
     padding: 0
 
@@ -37,6 +39,15 @@ Kirigami.OverlayDrawer {
         chatInput.text = "";
 
         AiSvc.sendChatMessage(trimmed, history, drawer.attachedTransactions);
+    }
+
+    Connections {
+        target: SettingsMgr
+        function onAiConfigChanged() {
+            if (!SettingsMgr.aiEnabled) {
+                drawer.close();
+            }
+        }
     }
 
     Connections {

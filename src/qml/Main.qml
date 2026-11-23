@@ -70,6 +70,9 @@ Kirigami.ApplicationWindow {
     }
 
     function openAskFinlyDrawer(prompt, attached) {
+        if (!SettingsMgr.aiEnabled) {
+            return;
+        }
         askFinlyDrawer.initialPrompt = prompt || "";
         askFinlyDrawer.attachedTransactions = attached || [];
         askFinlyDrawer.open();
