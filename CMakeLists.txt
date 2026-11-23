@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(finly VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+
+set(QT_MIN_VERSION "6.6.0")
+set(KF_MIN_VERSION "6.0.0")
+
+find_package(ECM ${KF_MIN_VERSION} REQUIRED NO_MODULE)
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+
+include(KDEInstallDirs)
+include(KDECMakeSettings)
+include(KDECompilerSettings NO_POLICY_SCOPE)
+include(ECMInstallIcons)
+include(FeatureSummary)
+
+find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS
+    Core
+    Quick
+    Qml
+    QuickControls2
+    Sql
+    Network
+    Widgets
+)
+
+qt_policy(SET QTP0001 NEW)
+
+find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
+    Kirigami
+    I18n
+    QQC2DesktopStyle
+    CoreAddons
+    Config
+    Notifications
+)
+
+add_subdirectory(src)
+
+install(PROGRAMS com.kumar.finly.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+install(FILES com.kumar.finly.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
+ecm_install_icons(ICONS com.kumar.finly.svg DESTINATION ${KDE_INSTALL_ICONDIR} THEME hicolor)
+
+feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)

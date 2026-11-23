@@ -1,0 +1,8 @@
+build/
+.cmake/
+*.user
+*.autosave
+CMakeLists.txt.user*
+FINLY_SPEC.md
+FINLY_SCREENS_AND_CONTROLS.md
+TODO.md

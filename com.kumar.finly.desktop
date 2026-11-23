@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Finly
+GenericName=Personal Finance Manager
+Comment=Local-first personal finance manager for KDE
+Exec=finly
+Icon=com.kumar.finly
+Type=Application
+Categories=Office;Finance;Qt;KDE;
+Terminal=false
+StartupNotify=true

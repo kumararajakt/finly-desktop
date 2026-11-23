@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="desktop-application">
+  <id>com.kumar.finly</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Finly</name>
+  <summary>Local-first personal finance manager</summary>
+  <description>
+    <p>
+      Finly is a local-first personal finance manager built with KDE Kirigami and SQLite.
+      Track accounts, transactions, transfers, budgets, categories, and personal loans with optional AI assistance.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.kumar.finly.desktop</launchable>
+  <provides>
+    <binary>finly</binary>
+  </provides>
+</component>
