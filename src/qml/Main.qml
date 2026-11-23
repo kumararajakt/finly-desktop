@@ -24,16 +24,26 @@ Kirigami.ApplicationWindow {
     }
 
     function navigateToView(viewName) {
+        if (root.activeView === viewName && pageStack.depth > 0) {
+            return;
+        }
         root.activeView = viewName;
-        var titles = {
-            "dashboard": i18n("Dashboard"),
-            "transactions": i18n("Transactions"),
-            "budgets": i18n("Budgets"),
-            "categories": i18n("Categories"),
-            "loans": i18n("Loans & Debts")
-        };
-        if (pageStack.currentItem) {
-            pageStack.currentItem.title = titles[viewName] || i18n("Finly");
+        switch (viewName) {
+        case "dashboard":
+            pageStack.replace(dashboardPageComponent);
+            break;
+        case "transactions":
+            pageStack.replace(transactionsPageComponent);
+            break;
+        case "budgets":
+            pageStack.replace(budgetsPageComponent);
+            break;
+        case "categories":
+            pageStack.replace(categoriesPageComponent);
+            break;
+        case "loans":
+            pageStack.replace(loansPageComponent);
+            break;
         }
     }
 
@@ -73,17 +83,53 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    pageStack.initialPage: Kirigami.ScrollablePage {
-        title: i18n("Dashboard")
-
-        Kirigami.PlaceholderMessage {
-            anchors.centerIn: parent
-            width: parent.width - (Kirigami.Units.largeSpacing * 4)
-            icon.name: "com.kumar.finly"
-            text: i18n("Active View: %1", root.activeView)
-            explanation: root.activeView === "transactions"
-                ? i18n("Transactions view (filter: %1). Full pages coming in Phase 4.", root.activeFilter)
-                : i18n("Sidebar and SQLite backend connected. Full pages coming in Phase 4.")
+    Component {
+        id: dashboardPageComponent
+        DashboardPage {
+            onNavigateToTransactions: (filterId) => root.navigateToTransactions(filterId)
+            onOpenAddTransaction: showPassiveNotification(i18n("Transaction dialog coming in Phase 5"))
+            onOpenAddAccount: showPassiveNotification(i18n("Account dialog coming in Phase 5"))
+            onOpenAskFinly: (prompt) => showPassiveNotification(i18n("Ask Finly drawer coming in Phase 6"))
         }
     }
+
+    Component {
+        id: transactionsPageComponent
+        TransactionsPage {
+            onOpenAddTransaction: showPassiveNotification(i18n("Transaction dialog coming in Phase 5"))
+            onOpenEditTransaction: (txData) => showPassiveNotification(i18n("Edit transaction coming in Phase 5"))
+            onOpenImportCSV: showPassiveNotification(i18n("CSV Import coming in Phase 5"))
+            onExportCSV: showPassiveNotification(i18n("CSV Export coming in Phase 6"))
+            onOpenAskFinly: (prompt) => showPassiveNotification(i18n("Ask Finly drawer coming in Phase 6"))
+        }
+    }
+
+    Component {
+        id: budgetsPageComponent
+        BudgetsPage {
+            onOpenAddBudget: showPassiveNotification(i18n("Budget dialog coming in Phase 5"))
+            onOpenEditBudget: (budgetData) => showPassiveNotification(i18n("Edit budget coming in Phase 5"))
+            onNavigateToCategoryTransactions: (catName) => root.navigateToTransactions("category:" + catName)
+        }
+    }
+
+    Component {
+        id: categoriesPageComponent
+        CategoriesPage {
+            onOpenAddCategory: showPassiveNotification(i18n("Category dialog coming in Phase 5"))
+            onOpenEditCategory: (catData) => showPassiveNotification(i18n("Edit category coming in Phase 5"))
+            onOpenDeleteCategory: (catData) => showPassiveNotification(i18n("Delete category dialog coming in Phase 5"))
+            onNavigateToCategoryTransactions: (catName) => root.navigateToTransactions("category:" + catName)
+        }
+    }
+
+    Component {
+        id: loansPageComponent
+        LoansPage {
+            onOpenAddLoan: showPassiveNotification(i18n("Loan dialog coming in Phase 5"))
+            onOpenRecordPayment: (loanData) => showPassiveNotification(i18n("Loan payment dialog coming in Phase 5"))
+        }
+    }
+
+    pageStack.initialPage: dashboardPageComponent
 }

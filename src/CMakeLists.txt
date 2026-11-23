@@ -11,6 +11,11 @@ add_executable(finly
 
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/GlobalSidebar.qml PROPERTIES QT_RESOURCE_ALIAS GlobalSidebar.qml)
+set_source_files_properties(qml/pages/DashboardPage.qml PROPERTIES QT_RESOURCE_ALIAS DashboardPage.qml)
+set_source_files_properties(qml/pages/TransactionsPage.qml PROPERTIES QT_RESOURCE_ALIAS TransactionsPage.qml)
+set_source_files_properties(qml/pages/BudgetsPage.qml PROPERTIES QT_RESOURCE_ALIAS BudgetsPage.qml)
+set_source_files_properties(qml/pages/CategoriesPage.qml PROPERTIES QT_RESOURCE_ALIAS CategoriesPage.qml)
+set_source_files_properties(qml/pages/LoansPage.qml PROPERTIES QT_RESOURCE_ALIAS LoansPage.qml)
 
 qt_add_qml_module(finly
     URI com.kumar.finly
@@ -18,6 +23,11 @@ qt_add_qml_module(finly
     QML_FILES
         qml/Main.qml
         qml/GlobalSidebar.qml
+        qml/pages/DashboardPage.qml
+        qml/pages/TransactionsPage.qml
+        qml/pages/BudgetsPage.qml
+        qml/pages/CategoriesPage.qml
+        qml/pages/LoansPage.qml
 )
 
 target_link_libraries(finly PRIVATE
