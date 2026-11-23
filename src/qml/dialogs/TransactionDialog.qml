@@ -123,10 +123,34 @@ Kirigami.Dialog {
                 placeholderText: i18n("AI Magic Input: e.g. \"Dinner with Alex for $42\"")
             }
             Controls.Button {
-                text: i18n("Parse")
+                text: AiSvc.busy ? i18n("Parsing...") : i18n("Parse")
                 icon.name: "quickopen"
-                enabled: magicField.text.trim().length > 0
-                onClicked: root.showPassiveNotification(i18n("AI natural language parser wired in Phase 6"))
+                enabled: !AiSvc.busy && magicField.text.trim().length > 0
+                onClicked: AiSvc.parseNaturalLanguageTransaction(magicField.text)
+            }
+        }
+
+        Connections {
+            target: AiSvc
+            function onTransactionParsed(txData, error) {
+                if (!dialog.opened) return;
+                if (error && error.length > 0) {
+                    root.showPassiveNotification(i18n("Parse error: %1", error));
+                    return;
+                }
+                if (txData.type) dialog.activeTab = txData.type;
+                if (txData.amount !== undefined) amountField.text = String(Math.abs(txData.amount));
+                if (txData.payee) payeeField.text = txData.payee;
+                if (txData.date) dateField.text = txData.date;
+                if (txData.notes) notesArea.text = txData.notes;
+                if (txData.category) {
+                    var cIdx = Categories.categoryNames().indexOf(txData.category);
+                    if (cIdx >= 0) categoryCombo.currentIndex = cIdx;
+                }
+                if (txData.account) {
+                    var aIdx = Accounts.accountNames().indexOf(txData.account);
+                    if (aIdx >= 0) accountCombo.currentIndex = aIdx;
+                }
             }
         }
 

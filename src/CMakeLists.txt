@@ -7,10 +7,14 @@ add_executable(finly
     models/BudgetModel.cpp
     models/CategoryModel.cpp
     models/LoanModel.cpp
+    services/CsvService.cpp
+    services/NotificationService.cpp
+    services/AiService.cpp
 )
 
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/GlobalSidebar.qml PROPERTIES QT_RESOURCE_ALIAS GlobalSidebar.qml)
+set_source_files_properties(qml/AskFinlyDrawer.qml PROPERTIES QT_RESOURCE_ALIAS AskFinlyDrawer.qml)
 set_source_files_properties(qml/pages/DashboardPage.qml PROPERTIES QT_RESOURCE_ALIAS DashboardPage.qml)
 set_source_files_properties(qml/pages/TransactionsPage.qml PROPERTIES QT_RESOURCE_ALIAS TransactionsPage.qml)
 set_source_files_properties(qml/pages/BudgetsPage.qml PROPERTIES QT_RESOURCE_ALIAS BudgetsPage.qml)
@@ -33,6 +37,7 @@ qt_add_qml_module(finly
     QML_FILES
         qml/Main.qml
         qml/GlobalSidebar.qml
+        qml/AskFinlyDrawer.qml
         qml/pages/DashboardPage.qml
         qml/pages/TransactionsPage.qml
         qml/pages/BudgetsPage.qml

@@ -225,11 +225,45 @@ Kirigami.Dialog {
                     checked: dialog.showApiKey
                     onToggled: dialog.showApiKey = checked
                 }
+                Controls.Button {
+                    visible: dialog.selectedProvider === "ollama"
+                    text: i18n("Detect Models")
+                    icon.name: "view-refresh"
+                    onClicked: AiSvc.detectOllamaModels(ollamaEndpointField.text)
+                }
                 Item { Layout.fillWidth: true }
                 Controls.Button {
                     text: i18n("Test Connection")
                     icon.name: "network-connect"
-                    onClicked: root.showPassiveNotification(i18n("AI network test wired in Phase 6"))
+                    onClicked: AiSvc.testConnection({
+                        provider: dialog.selectedProvider,
+                        ollamaEndpoint: ollamaEndpointField.text.trim(),
+                        ollamaModel: ollamaModelField.text.trim(),
+                        geminiApiKey: geminiKeyField.text.trim(),
+                        geminiModel: geminiModelField.text.trim(),
+                        openaiApiKey: openaiKeyField.text.trim(),
+                        openaiModel: openaiModelField.text.trim(),
+                        anthropicApiKey: anthropicKeyField.text.trim(),
+                        anthropicModel: anthropicModelField.text.trim()
+                    })
+                }
+            }
+
+            Connections {
+                target: AiSvc
+                function onTestConnectionFinished(success, message, models) {
+                    if (dialog.opened) root.showPassiveNotification(message);
+                }
+                function onOllamaModelsDetected(models, error) {
+                    if (!dialog.opened) return;
+                    if (error && error.length > 0) {
+                        root.showPassiveNotification(i18n("Ollama error: %1", error));
+                    } else if (models.length > 0) {
+                        ollamaModelField.text = models[0];
+                        root.showPassiveNotification(i18n("Found Ollama models: %1", models.join(", ")));
+                    } else {
+                        root.showPassiveNotification(i18n("Connected to Ollama, but no models installed."));
+                    }
                 }
             }
         }

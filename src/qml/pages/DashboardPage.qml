@@ -27,6 +27,18 @@ Kirigami.ScrollablePage {
     ]
 
     property bool digestCollapsed: false
+    property string digestText: ""
+
+    Connections {
+        target: AiSvc
+        function onDigestGenerated(summary, error) {
+            if (error && error.length > 0) {
+                page.digestText = i18n("Error generating digest: %1", error);
+            } else {
+                page.digestText = summary;
+            }
+        }
+    }
 
     ColumnLayout {
         width: parent.width
@@ -176,9 +188,10 @@ Kirigami.ScrollablePage {
                     }
 
                     Controls.ToolButton {
-                        text: i18n("Refresh")
+                        text: AiSvc.busy ? i18n("Generating...") : i18n("Refresh")
                         icon.name: "view-refresh"
-                        onClicked: root.showPassiveNotification(i18n("AI Digest generation wired in Phase 6"))
+                        enabled: !AiSvc.busy
+                        onClicked: AiSvc.generateHealthDigest()
                     }
 
                     Controls.ToolButton {
@@ -196,9 +209,11 @@ Kirigami.ScrollablePage {
                 Controls.Label {
                     visible: !page.digestCollapsed
                     Layout.fillWidth: true
-                    text: i18n("AI insights will summarize your spending trends, anomalies, and savings rate once Phase 6 AI service is connected.")
+                    text: page.digestText.length > 0
+                        ? page.digestText
+                        : i18n("Click Refresh to generate an AI summary of your spending trends, budgets, and savings rate.")
                     wrapMode: Text.WordWrap
-                    opacity: 0.75
+                    opacity: page.digestText.length > 0 ? 0.95 : 0.75
                 }
             }
         }

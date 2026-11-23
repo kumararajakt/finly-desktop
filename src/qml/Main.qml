@@ -69,6 +69,12 @@ Kirigami.ApplicationWindow {
         transactionDialog.open();
     }
 
+    function openAskFinlyDrawer(prompt, attached) {
+        askFinlyDrawer.initialPrompt = prompt || "";
+        askFinlyDrawer.attachedTransactions = attached || [];
+        askFinlyDrawer.open();
+    }
+
     globalDrawer: GlobalSidebar {
         activeView: root.activeView
         activeFilter: root.activeFilter
@@ -81,11 +87,19 @@ Kirigami.ApplicationWindow {
             settingsDialog.activeTab = 0;
             settingsDialog.open();
         }
-        onOpenAskFinly: showPassiveNotification(i18n("Ask Finly drawer coming in Phase 6"))
+        onOpenAskFinly: root.openAskFinlyDrawer("", [])
         onRequestDeleteAccount: (accountId, accountName) => {
             root.pendingDeleteAccountId = accountId;
             root.pendingDeleteAccountName = accountName;
             deleteAccountPrompt.open();
+        }
+    }
+
+    AskFinlyDrawer {
+        id: askFinlyDrawer
+        onOpenAiSettings: {
+            settingsDialog.activeTab = 1;
+            settingsDialog.open();
         }
     }
 
@@ -121,7 +135,7 @@ Kirigami.ApplicationWindow {
             onNavigateToTransactions: (filterId) => root.navigateToTransactions(filterId)
             onOpenAddTransaction: root.openNewTransaction()
             onOpenAddAccount: accountDialog.open()
-            onOpenAskFinly: (prompt) => showPassiveNotification(i18n("Ask Finly drawer coming in Phase 6"))
+            onOpenAskFinly: (prompt) => root.openAskFinlyDrawer(prompt, [])
         }
     }
 
@@ -131,8 +145,14 @@ Kirigami.ApplicationWindow {
             onOpenAddTransaction: root.openNewTransaction()
             onOpenEditTransaction: (txData) => root.openEditTransactionDialog(txData)
             onOpenImportCSV: importCsvDialog.open()
-            onExportCSV: showPassiveNotification(i18n("CSV Export coming in Phase 6"))
-            onOpenAskFinly: (prompt) => showPassiveNotification(i18n("Ask Finly drawer coming in Phase 6"))
+            onExportCSV: {
+                var today = Qt.formatDate(new Date(), "yyyy-MM-dd");
+                var saved = CsvSvc.exportTransactionsToCsv(TransactionFilter, "finly_transactions_" + today + ".csv");
+                if (saved && saved.length > 0) {
+                    showPassiveNotification(i18n("Exported to %1", saved));
+                }
+            }
+            onOpenAskFinly: (prompt) => root.openAskFinlyDrawer(prompt, [])
         }
     }
 

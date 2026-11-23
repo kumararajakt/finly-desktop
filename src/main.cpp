@@ -18,6 +18,9 @@
 #include "models/CategoryModel.h"
 #include "models/LoanModel.h"
 #include "models/TransactionModel.h"
+#include "services/AiService.h"
+#include "services/CsvService.h"
+#include "services/NotificationService.h"
 
 int main(int argc, char *argv[])
 {
@@ -70,6 +73,10 @@ int main(int argc, char *argv[])
     Finly::LoanModel loanModel(&db, &transactionModel);
     loanModel.load();
 
+    Finly::CsvService csvService;
+    Finly::NotificationService notificationService;
+    Finly::AiService aiService(&settingsMgr, &accountModel, &transactionModel, &budgetModel, &categoryModel, &loanModel, &notificationService);
+
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
     engine.rootContext()->setContextProperty(QStringLiteral("SettingsMgr"), &settingsMgr);
@@ -79,6 +86,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Budgets"), &budgetModel);
     engine.rootContext()->setContextProperty(QStringLiteral("Categories"), &categoryModel);
     engine.rootContext()->setContextProperty(QStringLiteral("Loans"), &loanModel);
+    engine.rootContext()->setContextProperty(QStringLiteral("CsvSvc"), &csvService);
+    engine.rootContext()->setContextProperty(QStringLiteral("NotifySvc"), &notificationService);
+    engine.rootContext()->setContextProperty(QStringLiteral("AiSvc"), &aiService);
     engine.loadFromModule("com.kumar.finly", "Main");
 
     if (engine.rootObjects().isEmpty()) {
