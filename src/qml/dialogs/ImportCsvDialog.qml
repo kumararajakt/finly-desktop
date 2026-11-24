@@ -24,7 +24,7 @@ Kirigami.Dialog {
     property string previewFilter: "all"     // "all" | "expense" | "income"
 
     title: i18n("Import Transactions (CSV)")
-    standardButtons: Kirigami.Dialog.Cancel
+    standardButtons: Kirigami.Dialog.NoButton
     preferredWidth: 820
     preferredHeight: 620
     padding: Kirigami.Units.largeSpacing
@@ -460,11 +460,20 @@ Kirigami.Dialog {
                         }
                     }
 
-                    Controls.Button {
-                        Layout.alignment: Qt.AlignRight
-                        text: i18n("Continue to Preview →")
-                        highlighted: true
-                        onClicked: dialog.buildPreviewRows()
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+                        Item { Layout.fillWidth: true }
+                        Controls.Button {
+                            text: i18n("Cancel")
+                            icon.name: "dialog-cancel"
+                            onClicked: dialog.close()
+                        }
+                        Controls.Button {
+                            text: i18n("Continue to Preview →")
+                            highlighted: true
+                            onClicked: dialog.buildPreviewRows()
+                        }
                     }
                 }
             }
@@ -581,6 +590,11 @@ Kirigami.Dialog {
                     onClicked: dialog.step = 0
                 }
                 Item { Layout.fillWidth: true }
+                Controls.Button {
+                    text: i18n("Cancel")
+                    icon.name: "dialog-cancel"
+                    onClicked: dialog.close()
+                }
                 Controls.Button {
                     text: i18n("Import %1 Transactions", dialog.mappedRows.filter(function(r) { return r.selected; }).length)
                     icon.name: "dialog-ok-apply"

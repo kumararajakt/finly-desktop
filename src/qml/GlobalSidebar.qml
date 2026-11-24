@@ -152,7 +152,7 @@ Kirigami.GlobalDrawer {
 
             Repeater {
                 model: [
-                    { id: "dashboard", label: i18n("Dashboard"), icon: "view-dashboard" },
+                    { id: "dashboard", label: i18n("Dashboard"), icon: "dashboard-show" },
                     { id: "budgets", label: i18n("Budgets"), icon: "office-chart-pie" },
                     { id: "categories", label: i18n("Categories"), icon: "tag" },
                     { id: "loans", label: i18n("Loans & Debts"), icon: "wallet-open" }
@@ -289,7 +289,15 @@ Kirigami.GlobalDrawer {
                         spacing: Kirigami.Units.smallSpacing
 
                         Kirigami.Icon {
-                            source: accDelegate.accountType === "credit" ? "credit-card" : "view-bank-account"
+                            source: {
+                                switch (accDelegate.accountType) {
+                                case "credit": return "view-financial-account-liability";
+                                case "savings": return "view-financial-account-savings";
+                                case "investment": return "view-financial-account-investment";
+                                case "loan": return "view-financial-account-loan";
+                                default: return "view-bank";
+                                }
+                            }
                             Layout.preferredWidth: Kirigami.Units.iconSizes.small
                             Layout.preferredHeight: Kirigami.Units.iconSizes.small
                         }

@@ -10,7 +10,8 @@ Kirigami.Dialog {
     standardButtons: Kirigami.Dialog.NoButton
     closePolicy: Controls.Popup.NoAutoClose
     modal: true
-    preferredWidth: 460
+    preferredWidth: 400
+    maximumWidth: 420
     padding: Kirigami.Units.largeSpacing
 
     property string selectedCountry: "India"
@@ -35,6 +36,7 @@ Kirigami.Dialog {
 
         Kirigami.FormLayout {
             Layout.fillWidth: true
+            wideMode: false
 
             Controls.TextField {
                 id: nameField
@@ -47,28 +49,17 @@ Kirigami.Dialog {
                 id: countryCombo
                 Kirigami.FormData.label: i18n("Country:")
                 Layout.fillWidth: true
-                model: SettingsMgr.countries
-                textRole: "country"
+                textRole: "label"
                 valueRole: "country"
+                model: SettingsMgr.countries.map(function(c) {
+                    return {
+                        country: c.country,
+                        label: c.country + " (" + c.currencyCode + " · " + c.symbol + ")"
+                    };
+                })
                 onActivated: {
                     dialog.selectedCountry = currentValue;
                     dialog.detectedCurrency = SettingsMgr.currencyForCountry(dialog.selectedCountry);
-                }
-            }
-        }
-
-        Kirigami.AbstractCard {
-            Layout.fillWidth: true
-            contentItem: RowLayout {
-                Controls.Label {
-                    Layout.fillWidth: true
-                    text: i18n("Detected Currency: %1 (%2)", dialog.detectedCurrency.currencyName, dialog.detectedCurrency.currencyCode)
-                    font.bold: true
-                }
-                Controls.Label {
-                    text: i18n("Sample: %12,450.00", dialog.detectedCurrency.symbol)
-                    font.bold: true
-                    color: Kirigami.Theme.highlightColor
                 }
             }
         }

@@ -83,13 +83,10 @@ Kirigami.ScrollablePage {
 
             Kirigami.SearchField {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 320
                 placeholderText: i18n("Search transactions...")
                 text: TransactionFilter.searchQuery
                 onTextChanged: TransactionFilter.searchQuery = text
             }
-
-            Item { Layout.fillWidth: true }
 
             Repeater {
                 model: [
@@ -270,10 +267,19 @@ Kirigami.ScrollablePage {
             }
         }
 
-        // Table Header Row
+        // Table Card
         Kirigami.AbstractCard {
+            id: tableCard
             visible: TransactionFilter.filteredCount > 0
             Layout.fillWidth: true
+
+            readonly property int colCheckW: 32
+            readonly property int colDateW: 96
+            readonly property int colCatW: 140
+            readonly property int colAccW: 150
+            readonly property int colAmtW: 130
+            readonly property int colStatusW: 90
+            readonly property int colActionsW: SettingsMgr.aiEnabled ? 132 : 98
 
             contentItem: ColumnLayout {
                 spacing: 0
@@ -282,42 +288,75 @@ Kirigami.ScrollablePage {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
 
+                    Controls.CheckBox {
+                        Layout.preferredWidth: tableCard.colCheckW
+                        Layout.minimumWidth: tableCard.colCheckW
+                        Layout.maximumWidth: tableCard.colCheckW
+                        checked: page.selectedIds.length > 0 && page.selectedIds.length === TransactionFilter.filteredCount
+                        onToggled: {
+                            if (checked) {
+                                var all = [];
+                                for (var i = 0; i < TransactionFilter.filteredCount; ++i) {
+                                    all.push(TransactionFilter.data(TransactionFilter.index(i, 0), Qt.UserRole + 1));
+                                }
+                                page.selectedIds = all;
+                            } else {
+                                page.selectedIds = [];
+                            }
+                        }
+                    }
                     Controls.ToolButton {
                         text: i18n("Date") + (page.sortField === "date" ? (page.sortAscending ? " ↑" : " ↓") : "")
                         font.bold: true
-                        Layout.preferredWidth: 100
+                        Layout.preferredWidth: tableCard.colDateW
+                        Layout.minimumWidth: tableCard.colDateW
+                        Layout.maximumWidth: tableCard.colDateW
                         onClicked: page.toggleSort("date")
                     }
                     Controls.ToolButton {
                         text: i18n("Payee") + (page.sortField === "payee" ? (page.sortAscending ? " ↑" : " ↓") : "")
                         font.bold: true
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 140
+                        Layout.preferredWidth: 100
                         onClicked: page.toggleSort("payee")
                     }
                     Controls.ToolButton {
                         text: i18n("Category") + (page.sortField === "category" ? (page.sortAscending ? " ↑" : " ↓") : "")
                         font.bold: true
-                        Layout.preferredWidth: 130
+                        Layout.preferredWidth: tableCard.colCatW
+                        Layout.minimumWidth: tableCard.colCatW
+                        Layout.maximumWidth: tableCard.colCatW
                         onClicked: page.toggleSort("category")
                     }
                     Controls.Label {
                         text: i18n("Account")
                         font.bold: true
-                        Layout.preferredWidth: 150
+                        Layout.preferredWidth: tableCard.colAccW
+                        Layout.minimumWidth: tableCard.colAccW
+                        Layout.maximumWidth: tableCard.colAccW
                     }
                     Controls.ToolButton {
                         text: i18n("Amount") + (page.sortField === "amount" ? (page.sortAscending ? " ↑" : " ↓") : "")
                         font.bold: true
-                        Layout.preferredWidth: 110
+                        Layout.preferredWidth: tableCard.colAmtW
+                        Layout.minimumWidth: tableCard.colAmtW
+                        Layout.maximumWidth: tableCard.colAmtW
                         onClicked: page.toggleSort("amount")
                     }
                     Controls.ToolButton {
                         text: i18n("Status") + (page.sortField === "status" ? (page.sortAscending ? " ↑" : " ↓") : "")
                         font.bold: true
-                        Layout.preferredWidth: 90
+                        Layout.preferredWidth: tableCard.colStatusW
+                        Layout.minimumWidth: tableCard.colStatusW
+                        Layout.maximumWidth: tableCard.colStatusW
                         onClicked: page.toggleSort("status")
                     }
-                    Item { Layout.preferredWidth: 110 }
+                    Item {
+                        Layout.preferredWidth: tableCard.colActionsW
+                        Layout.minimumWidth: tableCard.colActionsW
+                        Layout.maximumWidth: tableCard.colActionsW
+                    }
                 }
 
                 Kirigami.Separator { Layout.fillWidth: true }
@@ -349,6 +388,9 @@ Kirigami.ScrollablePage {
                             spacing: Kirigami.Units.smallSpacing
 
                             Controls.CheckBox {
+                                Layout.preferredWidth: tableCard.colCheckW
+                                Layout.minimumWidth: tableCard.colCheckW
+                                Layout.maximumWidth: tableCard.colCheckW
                                 checked: page.isSelected(txRow.txId)
                                 onToggled: page.toggleRowSelection(txRow.txId)
                             }
@@ -356,11 +398,15 @@ Kirigami.ScrollablePage {
                             Controls.Label {
                                 text: txRow.date
                                 font.pixelSize: 12
-                                Layout.preferredWidth: 85
+                                Layout.preferredWidth: tableCard.colDateW
+                                Layout.minimumWidth: tableCard.colDateW
+                                Layout.maximumWidth: tableCard.colDateW
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 140
+                                Layout.preferredWidth: 100
                                 spacing: 0
                                 Controls.Label {
                                     Layout.fillWidth: true
@@ -379,7 +425,9 @@ Kirigami.ScrollablePage {
                             }
 
                             RowLayout {
-                                Layout.preferredWidth: 130
+                                Layout.preferredWidth: tableCard.colCatW
+                                Layout.minimumWidth: tableCard.colCatW
+                                Layout.maximumWidth: tableCard.colCatW
                                 spacing: 6
                                 Rectangle {
                                     width: 8
@@ -396,7 +444,9 @@ Kirigami.ScrollablePage {
                             }
 
                             Controls.Label {
-                                Layout.preferredWidth: 150
+                                Layout.preferredWidth: tableCard.colAccW
+                                Layout.minimumWidth: tableCard.colAccW
+                                Layout.maximumWidth: tableCard.colAccW
                                 text: txRow.txType === "transfer" && txRow.toAccount.length > 0
                                     ? txRow.account + " → " + txRow.toAccount
                                     : txRow.account
@@ -406,16 +456,24 @@ Kirigami.ScrollablePage {
                             }
 
                             Controls.Label {
-                                Layout.preferredWidth: 110
+                                Layout.preferredWidth: tableCard.colAmtW
+                                Layout.minimumWidth: tableCard.colAmtW
+                                Layout.maximumWidth: tableCard.colAmtW
+                                horizontalAlignment: Text.AlignRight
+                                rightPadding: 8
                                 text: (txRow.amount > 0 && txRow.txType !== "transfer" ? "+" : "") + root.formatMoney(txRow.amount)
                                 font.bold: true
+                                elide: Text.ElideRight
                                 color: txRow.txType === "transfer"
                                     ? Kirigami.Theme.textColor
                                     : (txRow.amount >= 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor)
                             }
 
                             Controls.Label {
-                                Layout.preferredWidth: 90
+                                Layout.preferredWidth: tableCard.colStatusW
+                                Layout.minimumWidth: tableCard.colStatusW
+                                Layout.maximumWidth: tableCard.colStatusW
+                                horizontalAlignment: Text.AlignHCenter
                                 text: txRow.status.toUpperCase()
                                 font.pixelSize: 10
                                 font.bold: true
@@ -425,7 +483,9 @@ Kirigami.ScrollablePage {
                             }
 
                             RowLayout {
-                                Layout.preferredWidth: 110
+                                Layout.preferredWidth: tableCard.colActionsW
+                                Layout.minimumWidth: tableCard.colActionsW
+                                Layout.maximumWidth: tableCard.colActionsW
                                 spacing: 2
 
                                 Controls.ToolButton {

@@ -326,7 +326,15 @@ Kirigami.ScrollablePage {
                             contentItem: RowLayout {
                                 spacing: Kirigami.Units.smallSpacing
                                 Kirigami.Icon {
-                                    source: accountType === "credit" ? "credit-card" : "view-bank-account"
+                                    source: {
+                                        switch (accountType) {
+                                        case "credit": return "view-financial-account-liability";
+                                        case "savings": return "view-financial-account-savings";
+                                        case "investment": return "view-financial-account-investment";
+                                        case "loan": return "view-financial-account-loan";
+                                        default: return "view-bank";
+                                        }
+                                    }
                                     Layout.preferredWidth: Kirigami.Units.iconSizes.small
                                     Layout.preferredHeight: Kirigami.Units.iconSizes.small
                                 }
