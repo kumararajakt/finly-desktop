@@ -228,7 +228,7 @@ Kirigami.ScrollablePage {
             // Category Breakdown
             Kirigami.AbstractCard {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
+                Layout.fillHeight: true
 
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.mediumSpacing
@@ -281,13 +281,15 @@ Kirigami.ScrollablePage {
                             }
                         }
                     }
+
+                    Item { Layout.fillHeight: true }
                 }
             }
 
             // Accounts Summary
             Kirigami.AbstractCard {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
+                Layout.fillHeight: true
 
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.mediumSpacing
@@ -350,6 +352,8 @@ Kirigami.ScrollablePage {
                             }
                         }
                     }
+
+                    Item { Layout.fillHeight: true }
                 }
             }
         }

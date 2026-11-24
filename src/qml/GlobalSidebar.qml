@@ -335,34 +335,25 @@ Kirigami.GlobalDrawer {
 
         Kirigami.Separator { Layout.fillWidth: true }
 
-        RowLayout {
+        Controls.ItemDelegate {
             Layout.fillWidth: true
-            Layout.margins: Kirigami.Units.largeSpacing
-            spacing: Kirigami.Units.smallSpacing
+            Layout.margins: Kirigami.Units.smallSpacing
+            onClicked: drawer.openSettings()
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                Controls.Label {
-                    text: i18n("Net Worth")
-                    font.pixelSize: 10
-                    opacity: 0.65
-                }
+            contentItem: RowLayout {
+                spacing: Kirigami.Units.smallSpacing
 
                 Controls.Label {
-                    text: (Accounts.totalNetWorth < 0 ? "-" : "") + SettingsMgr.currencySymbol + Math.abs(Accounts.totalNetWorth).toFixed(2)
-                    font.pixelSize: 14
-                    font.bold: true
-                    color: Accounts.totalNetWorth < 0 ? Kirigami.Theme.negativeTextColor : Kirigami.Theme.positiveTextColor
+                    Layout.fillWidth: true
+                    text: i18n("Settings")
+                    elide: Text.ElideRight
                 }
-            }
 
-            Controls.ToolButton {
-                icon.name: "configure"
-                Controls.ToolTip.visible: hovered
-                Controls.ToolTip.text: i18n("Settings")
-                onClicked: drawer.openSettings()
+                Kirigami.Icon {
+                    source: "configure"
+                    Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                    Layout.preferredHeight: Kirigami.Units.iconSizes.small
+                }
             }
         }
     }
