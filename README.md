@@ -16,11 +16,21 @@ A native Linux desktop personal finance manager built with **C++20**, **Qt 6**, 
 sudo pacman -S --needed cmake ninja extra-cmake-modules qt6-base qt6-declarative kirigami ki18n kcoreaddons kconfig knotifications qqc2-desktop-style
 ```
 
-### Build
+### Build & Run
 ```bash
-cmake -B build -G Ninja
+cmake -S . -B build -G Ninja
 cmake --build build
 ./build/bin/finly
+```
+
+### Run Tests
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+### Flatpak Build
+```bash
+flatpak-builder --user --install --force-clean build-flatpak com.kumar.finly.json
 ```
 
 ## License

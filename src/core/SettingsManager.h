@@ -19,6 +19,7 @@ class SettingsManager : public QObject
     Q_PROPERTY(QString currencyCode READ currencyCode NOTIFY profileChanged)
     Q_PROPERTY(QString currencySymbol READ currencySymbol NOTIFY profileChanged)
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
+    Q_PROPERTY(bool minimizeToTray READ minimizeToTray WRITE setMinimizeToTray NOTIFY minimizeToTrayChanged)
 
     Q_PROPERTY(bool aiEnabled READ aiEnabled NOTIFY aiConfigChanged)
     Q_PROPERTY(QString aiProvider READ aiProvider NOTIFY aiConfigChanged)
@@ -39,6 +40,9 @@ public:
     QString theme() const;
     void setTheme(const QString &mode);
 
+    bool minimizeToTray() const;
+    void setMinimizeToTray(bool enabled);
+
     bool aiEnabled() const;
     QString aiProvider() const;
     QVariantMap aiConfigMap() const;
@@ -53,6 +57,7 @@ public:
 Q_SIGNALS:
     void profileChanged();
     void themeChanged();
+    void minimizeToTrayChanged();
     void aiConfigChanged();
 
 private:
@@ -62,6 +67,7 @@ private:
     bool m_hasProfile = false;
     UserProfile m_profile;
     QString m_theme = QStringLiteral("auto");
+    bool m_minimizeToTray = true;
     AIConfig m_aiConfig;
 };
 

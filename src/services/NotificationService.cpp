@@ -11,10 +11,13 @@ NotificationService::NotificationService(QObject *parent)
 
 void NotificationService::notify(const QString &title, const QString &body)
 {
-    auto *notification = new KNotification(QStringLiteral("notification"), KNotification::CloseOnTimeout, this);
-    notification->setTitle(title);
-    notification->setText(body);
-    notification->sendEvent();
+    KNotification::event(
+        KNotification::Notification,
+        title,
+        body,
+        QStringLiteral("com.kumar.finly"),
+        KNotification::CloseOnTimeout
+    );
 }
 
 } // namespace Finly

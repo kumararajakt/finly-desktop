@@ -41,8 +41,13 @@ find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
 
 add_subdirectory(src)
 
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
 install(PROGRAMS com.kumar.finly.desktop DESTINATION ${KDE_INSTALL_APPDIR})
 install(FILES com.kumar.finly.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
-ecm_install_icons(ICONS com.kumar.finly.svg DESTINATION ${KDE_INSTALL_ICONDIR} THEME hicolor)
+install(FILES com.kumar.finly.svg DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)

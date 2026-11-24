@@ -23,6 +23,33 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    onClosing: (close) => {
+        if (SettingsMgr.minimizeToTray && TraySvc.available) {
+            close.accepted = false;
+            root.hide();
+        } else {
+            Qt.quit();
+        }
+    }
+
+    Connections {
+        target: TraySvc
+        function onShowWindowRequested() {
+            root.show();
+            root.raise();
+            root.requestActivate();
+        }
+        function onToggleWindowRequested() {
+            if (root.visible) {
+                root.hide();
+            } else {
+                root.show();
+                root.raise();
+                root.requestActivate();
+            }
+        }
+    }
+
     function formatMoney(amount) {
         var sym = SettingsMgr.currencySymbol || "$";
         var absVal = Math.abs(amount).toLocaleString(Qt.locale(), 'f', 2);

@@ -21,6 +21,8 @@
 #include "services/AiService.h"
 #include "services/CsvService.h"
 #include "services/NotificationService.h"
+#include "services/ReminderService.h"
+#include "services/TrayService.h"
 
 int main(int argc, char *argv[])
 {
@@ -75,6 +77,12 @@ int main(int argc, char *argv[])
 
     Finly::CsvService csvService;
     Finly::NotificationService notificationService;
+    Finly::ReminderService reminderService(&db, &notificationService);
+    reminderService.load();
+    Finly::TrayService trayService;
+    if (trayService.isAvailable()) {
+        QApplication::setQuitOnLastWindowClosed(false);
+    }
     Finly::AiService aiService(&settingsMgr, &accountModel, &transactionModel, &budgetModel, &categoryModel, &loanModel, &notificationService);
 
     QQmlApplicationEngine engine;
@@ -88,6 +96,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Loans"), &loanModel);
     engine.rootContext()->setContextProperty(QStringLiteral("CsvSvc"), &csvService);
     engine.rootContext()->setContextProperty(QStringLiteral("NotifySvc"), &notificationService);
+    engine.rootContext()->setContextProperty(QStringLiteral("ReminderSvc"), &reminderService);
+    engine.rootContext()->setContextProperty(QStringLiteral("TraySvc"), &trayService);
     engine.rootContext()->setContextProperty(QStringLiteral("AiSvc"), &aiService);
     engine.loadFromModule("com.kumar.finly", "Main");
 

@@ -6,10 +6,11 @@ import org.kde.kirigami as Kirigami
 Kirigami.Dialog {
     id: dialog
 
-    property int activeTab: 0 // 0 = General, 1 = AI Assistant
+    property int activeTab: 0 // 0 = General, 1 = AI Assistant, 2 = Reminders
     property string selectedTheme: SettingsMgr.theme
     property string selectedProvider: "ollama"
     property bool showApiKey: false
+    property var pendingReminderSchedule: ({})
 
     title: i18n("Settings")
     standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
@@ -40,10 +41,18 @@ Kirigami.Dialog {
         openaiModelField.text = cfg.openaiModel || "gpt-4o-mini";
         anthropicKeyField.text = cfg.anthropicApiKey || "";
         anthropicModelField.text = cfg.anthropicModel || "claude-3-5-haiku-20241022";
+
+        var rem = ReminderSvc.config;
+        reminderEnabledSwitch.checked = rem.enabled || false;
+        reminderTitleField.text = rem.title || i18n("Finly Reminder");
+        reminderMessageField.text = rem.message || i18n("Time to log today's expenses and review your budgets!");
+        pendingReminderSchedule = rem;
+        traySwitch.checked = SettingsMgr.minimizeToTray;
     }
 
     onAccepted: {
         SettingsMgr.theme = selectedTheme;
+        SettingsMgr.minimizeToTray = traySwitch.checked;
         var curr = SettingsMgr.currencyForCountry(countryCombo.currentValue);
         SettingsMgr.saveProfile(nameField.text.trim(), countryCombo.currentValue, curr.currencyCode, curr.symbol);
         SettingsMgr.saveAIConfig({
@@ -58,6 +67,12 @@ Kirigami.Dialog {
             anthropicApiKey: anthropicKeyField.text.trim(),
             anthropicModel: anthropicModelField.text.trim()
         });
+        var remPayload = Object.assign({}, pendingReminderSchedule, {
+            enabled: reminderEnabledSwitch.checked,
+            title: reminderTitleField.text.trim(),
+            message: reminderMessageField.text.trim()
+        });
+        ReminderSvc.saveConfig(remPayload);
     }
 
     ColumnLayout {
@@ -82,6 +97,14 @@ Kirigami.Dialog {
                 checkable: true
                 checked: dialog.activeTab === 1
                 onClicked: dialog.activeTab = 1
+            }
+            Controls.Button {
+                Layout.fillWidth: true
+                text: i18n("Reminders")
+                icon.name: "notifications"
+                checkable: true
+                checked: dialog.activeTab === 2
+                onClicked: dialog.activeTab = 2
             }
         }
 
@@ -123,6 +146,12 @@ Kirigami.Dialog {
                 model: SettingsMgr.countries
                 textRole: "country"
                 valueRole: "country"
+            }
+
+            Controls.Switch {
+                id: traySwitch
+                Kirigami.FormData.label: i18n("System Tray:")
+                text: i18n("Minimize to system tray when closing window")
             }
         }
 
@@ -266,6 +295,94 @@ Kirigami.Dialog {
                     }
                 }
             }
+        }
+
+        // Reminders Tab
+        ColumnLayout {
+            visible: dialog.activeTab === 2
+            Layout.fillWidth: true
+            spacing: Kirigami.Units.mediumSpacing
+
+            Controls.Switch {
+                id: reminderEnabledSwitch
+                text: i18n("Enable Native Desktop Reminder Notifications")
+            }
+
+            Kirigami.FormLayout {
+                Layout.fillWidth: true
+
+                Controls.TextField {
+                    id: reminderTitleField
+                    Kirigami.FormData.label: i18n("Notification Title:")
+                    Layout.fillWidth: true
+                    placeholderText: i18n("Finly Reminder")
+                }
+
+                Controls.TextField {
+                    id: reminderMessageField
+                    Kirigami.FormData.label: i18n("Message:")
+                    Layout.fillWidth: true
+                    placeholderText: i18n("Time to log today's expenses and review your budgets!")
+                }
+            }
+
+            Kirigami.AbstractCard {
+                Layout.fillWidth: true
+                contentItem: RowLayout {
+                    spacing: Kirigami.Units.smallSpacing
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Controls.Label {
+                            text: i18n("Repeat Schedule")
+                            font.bold: true
+                        }
+                        Controls.Label {
+                            Layout.fillWidth: true
+                            text: ReminderSvc.scheduleSummary
+                            font.pixelSize: 11
+                            opacity: 0.75
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                    Controls.Button {
+                        text: i18n("Configure...")
+                        icon.name: "view-calendar"
+                        onClicked: {
+                            reminderScheduleDialog.loadFromConfig(dialog.pendingReminderSchedule);
+                            reminderScheduleDialog.open();
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                Controls.Button {
+                    text: i18n("Test Native Notification")
+                    icon.name: "notifications"
+                    onClicked: {
+                        NotifySvc.notify(
+                            reminderTitleField.text.trim() || i18n("Finly Reminder"),
+                            reminderMessageField.text.trim() || i18n("Time to log today's expenses and review your budgets!")
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    ReminderScheduleDialog {
+        id: reminderScheduleDialog
+        onScheduleSaved: (sched) => {
+            var merged = Object.assign({}, dialog.pendingReminderSchedule, sched, {
+                enabled: reminderEnabledSwitch.checked,
+                title: reminderTitleField.text.trim(),
+                message: reminderMessageField.text.trim()
+            });
+            dialog.pendingReminderSchedule = merged;
+            ReminderSvc.saveConfig(merged);
         }
     }
 }

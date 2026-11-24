@@ -9,6 +9,8 @@ add_executable(finly
     models/LoanModel.cpp
     services/CsvService.cpp
     services/NotificationService.cpp
+    services/ReminderService.cpp
+    services/TrayService.cpp
     services/AiService.cpp
 )
 
@@ -29,6 +31,7 @@ set_source_files_properties(qml/dialogs/DeleteCategoryDialog.qml PROPERTIES QT_R
 set_source_files_properties(qml/dialogs/LoanDialog.qml PROPERTIES QT_RESOURCE_ALIAS LoanDialog.qml)
 set_source_files_properties(qml/dialogs/LoanPaymentDialog.qml PROPERTIES QT_RESOURCE_ALIAS LoanPaymentDialog.qml)
 set_source_files_properties(qml/dialogs/SettingsDialog.qml PROPERTIES QT_RESOURCE_ALIAS SettingsDialog.qml)
+set_source_files_properties(qml/dialogs/ReminderScheduleDialog.qml PROPERTIES QT_RESOURCE_ALIAS ReminderScheduleDialog.qml)
 set_source_files_properties(qml/dialogs/ImportCsvDialog.qml PROPERTIES QT_RESOURCE_ALIAS ImportCsvDialog.qml)
 
 qt_add_qml_module(finly
@@ -52,6 +55,7 @@ qt_add_qml_module(finly
         qml/dialogs/LoanDialog.qml
         qml/dialogs/LoanPaymentDialog.qml
         qml/dialogs/SettingsDialog.qml
+        qml/dialogs/ReminderScheduleDialog.qml
         qml/dialogs/ImportCsvDialog.qml
 )
 

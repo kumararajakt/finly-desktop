@@ -83,6 +83,11 @@ void SettingsManager::load()
         }
     }
 
+    if (const auto trayVal = m_db->getSetting(QStringLiteral("minimize_to_tray"))) {
+        m_minimizeToTray = (*trayVal != QStringLiteral("false"));
+        Q_EMIT minimizeToTrayChanged();
+    }
+
     if (const auto aiJson = m_db->getSetting(QStringLiteral("ai_config"))) {
         const QJsonObject obj = QJsonDocument::fromJson(aiJson->toUtf8()).object();
         if (!obj.isEmpty()) {
@@ -121,6 +126,20 @@ void SettingsManager::setTheme(const QString &mode)
         m_db->setSetting(QStringLiteral("theme"), m_theme);
     }
     Q_EMIT themeChanged();
+}
+
+bool SettingsManager::minimizeToTray() const { return m_minimizeToTray; }
+
+void SettingsManager::setMinimizeToTray(bool enabled)
+{
+    if (m_minimizeToTray == enabled) {
+        return;
+    }
+    m_minimizeToTray = enabled;
+    if (m_db) {
+        m_db->setSetting(QStringLiteral("minimize_to_tray"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
+    }
+    Q_EMIT minimizeToTrayChanged();
 }
 
 bool SettingsManager::aiEnabled() const { return m_aiConfig.enabled; }
