@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: invent-registry.kde.org/sysadmin/ci-images/android-qt611
+      options: --user root
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

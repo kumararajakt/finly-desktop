@@ -49,6 +49,8 @@ jobs:
           OUTPUT: Finly-x86_64.AppImage
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
+          # Keep only SQLite driver so linuxdeploy-plugin-qt doesn't fail on missing Firebird/MySQL/Postgres libs
+          find /usr/lib/qt6/plugins/sqldrivers -maxdepth 1 -type f ! -name 'libqsqlite.so' -delete
           export PATH="$PWD/linuxdeploy-root/usr/bin:$PWD/linuxdeploy-qt-root/usr/bin:$PATH"
           linuxdeploy \
             --appdir AppDir \
