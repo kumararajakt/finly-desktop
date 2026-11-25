@@ -1,4 +1,4 @@
-add_executable(finly
+qt_add_executable(finly
     main.cpp
     core/DatabaseManager.cpp
     core/SettingsManager.cpp
@@ -19,7 +19,19 @@ qt_add_resources(finly "finly_icons"
     BASE "${CMAKE_SOURCE_DIR}"
     FILES
         "${CMAKE_SOURCE_DIR}/com.kumar.finly.svg"
+        "${CMAKE_SOURCE_DIR}/menu.svg"
 )
+
+if(ANDROID)
+    file(GLOB ANDROID_ICON_SVGS "${CMAKE_CURRENT_SOURCE_DIR}/android-icons/actions/22/*.svg")
+    qt_add_resources(finly "finly_android_icons"
+        PREFIX "/icons/breeze"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/android-icons"
+        FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/android-icons/index.theme"
+            ${ANDROID_ICON_SVGS}
+    )
+endif()
 
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/GlobalSidebar.qml PROPERTIES QT_RESOURCE_ALIAS GlobalSidebar.qml)
@@ -73,7 +85,6 @@ target_link_libraries(finly PRIVATE
     Qt6::QuickControls2
     Qt6::Sql
     Qt6::Network
-    Qt6::Widgets
     KF6::Kirigami
     KF6::I18n
     KF6::I18nQml
@@ -81,5 +92,16 @@ target_link_libraries(finly PRIVATE
     KF6::ConfigCore
     KF6::Notifications
 )
+
+if(NOT ANDROID)
+    target_link_libraries(finly PRIVATE Qt6::Widgets)
+endif()
+
+if(ANDROID)
+    ecm_add_android_apk(finly
+        ANDROID_DIR "${CMAKE_SOURCE_DIR}/android"
+        PACKAGE_NAME "com.kumar.finly"
+    )
+endif()
 
 install(TARGETS finly ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})

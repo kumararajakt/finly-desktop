@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
@@ -29,8 +30,19 @@ Kirigami.Dialog {
     preferredHeight: Math.min(620, root.height - Kirigami.Units.largeSpacing * 2)
     padding: Kirigami.Units.largeSpacing
 
+    FileDialog {
+        id: csvOpenDialog
+        title: i18n("Select CSV Statement")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [i18n("CSV Files (*.csv)"), i18n("All Files (*)")]
+        onAccepted: dialog.loadCsvFromPath(selectedFile.toString())
+    }
+
     function pickAndLoadCsv() {
-        var path = CsvSvc.pickCsvFile();
+        csvOpenDialog.open();
+    }
+
+    function loadCsvFromPath(path) {
         if (!path || path.length === 0) return;
         var res = CsvSvc.parseCsvFile(path);
         if (!res.ok) {

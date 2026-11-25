@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
@@ -141,6 +142,19 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    FileDialog {
+        id: csvExportDialog
+        title: i18n("Export Transactions to CSV")
+        fileMode: FileDialog.SaveFile
+        nameFilters: [i18n("CSV Files (*.csv)")]
+        onAccepted: {
+            var saved = CsvSvc.exportTransactionsToCsv(TransactionFilter, selectedFile.toString());
+            if (saved && saved.length > 0) {
+                showPassiveNotification(i18n("Exported to %1", saved));
+            }
+        }
+    }
+
     // --- Dialogs ---
     OnboardingDialog { id: onboardingDialog }
     AccountDialog {
@@ -203,13 +217,7 @@ Kirigami.ApplicationWindow {
             onOpenAddTransaction: root.openNewTransaction()
             onOpenEditTransaction: (txData) => root.openEditTransactionDialog(txData)
             onOpenImportCSV: importCsvDialog.open()
-            onExportCSV: {
-                var today = Qt.formatDate(new Date(), "yyyy-MM-dd");
-                var saved = CsvSvc.exportTransactionsToCsv(TransactionFilter, "finly_transactions_" + today + ".csv");
-                if (saved && saved.length > 0) {
-                    showPassiveNotification(i18n("Exported to %1", saved));
-                }
-            }
+            onExportCSV: csvExportDialog.open()
             onOpenAskFinly: (prompt) => root.openAskFinlyDrawer(prompt, [])
         }
     }
@@ -259,5 +267,6 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    pageStack.globalToolBar.style: Kirigami.ApplicationHeaderStyle.ToolBar
     pageStack.initialPage: dashboardPageComponent
 }

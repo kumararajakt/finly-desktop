@@ -2,9 +2,7 @@
 
 #include <QDate>
 #include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
-#include <QStandardPaths>
 #include <QTextStream>
 #include <QUrl>
 
@@ -13,17 +11,6 @@ namespace Finly {
 CsvService::CsvService(QObject *parent)
     : QObject(parent)
 {
-}
-
-QString CsvService::pickCsvFile()
-{
-    const QString docsDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    return QFileDialog::getOpenFileName(
-        nullptr,
-        tr("Select CSV Statement"),
-        docsDir,
-        tr("CSV Files (*.csv);;All Files (*)")
-    );
 }
 
 QVector<QStringList> CsvService::parseRfc4180(const QString &content)
@@ -216,20 +203,17 @@ QString CsvService::escapeCsvField(const QString &field)
     return field;
 }
 
-QString CsvService::exportTransactionsToCsv(QObject *proxyModelObj, const QString &defaultFilename)
+QString CsvService::exportTransactionsToCsv(QObject *proxyModelObj, const QString &fileUrl)
 {
     auto *model = qobject_cast<QAbstractItemModel *>(proxyModelObj);
-    if (!model) {
+    if (!model || fileUrl.isEmpty()) {
         return {};
     }
 
-    const QString docsDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    const QString savePath = QFileDialog::getSaveFileName(
-        nullptr,
-        tr("Export Transactions to CSV"),
-        docsDir + QLatin1Char('/') + defaultFilename,
-        tr("CSV Files (*.csv)")
-    );
+    QString savePath = fileUrl;
+    if (savePath.startsWith(QStringLiteral("file://"))) {
+        savePath = QUrl(savePath).toLocalFile();
+    }
     if (savePath.isEmpty()) {
         return {};
     }

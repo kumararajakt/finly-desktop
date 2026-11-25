@@ -18,7 +18,6 @@ target_link_libraries(finly_tests PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Sql
-    Qt6::Widgets
 )
 
 add_test(NAME finly_tests COMMAND finly_tests)

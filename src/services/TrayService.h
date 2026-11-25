@@ -1,8 +1,10 @@
 #pragma once
 
-#include <QMenu>
 #include <QObject>
+#ifndef Q_OS_ANDROID
+#include <QMenu>
 #include <QSystemTrayIcon>
+#endif
 
 namespace Finly {
 
@@ -23,8 +25,10 @@ Q_SIGNALS:
     void quitRequested();
 
 private:
+#ifndef Q_OS_ANDROID
     QSystemTrayIcon *m_trayIcon = nullptr;
     QMenu *m_menu = nullptr;
+#endif
 };
 
 } // namespace Finly

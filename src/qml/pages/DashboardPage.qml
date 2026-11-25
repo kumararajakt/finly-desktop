@@ -47,13 +47,15 @@ Kirigami.ScrollablePage {
         spacing: Kirigami.Units.largeSpacing
 
         // Top KPI Row
-        Kirigami.CardsLayout {
+        GridLayout {
             Layout.fillWidth: true
-            maximumColumns: 4
-            minimumColumnWidth: Kirigami.Units.gridUnit * 12
+            columns: root.isWidescreen ? 4 : 1
+            columnSpacing: Kirigami.Units.largeSpacing
+            rowSpacing: Kirigami.Units.largeSpacing
 
             // Net Worth Card
             Kirigami.AbstractCard {
+                Layout.fillWidth: true
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Controls.Label {
@@ -86,6 +88,7 @@ Kirigami.ScrollablePage {
 
             // Inflow Card
             Kirigami.AbstractCard {
+                Layout.fillWidth: true
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Controls.Label {
@@ -110,6 +113,7 @@ Kirigami.ScrollablePage {
 
             // Outflow Card
             Kirigami.AbstractCard {
+                Layout.fillWidth: true
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Controls.Label {
@@ -134,6 +138,7 @@ Kirigami.ScrollablePage {
 
             // Attention / Status Card
             Kirigami.AbstractCard {
+                Layout.fillWidth: true
                 contentItem: ColumnLayout {
                     spacing: Kirigami.Units.smallSpacing
                     Controls.Label {
@@ -243,6 +248,8 @@ Kirigami.ScrollablePage {
 
                     Controls.Label {
                         visible: Transactions.categoryBreakdown().length === 0
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
                         text: i18n("No expenses recorded yet.")
                         opacity: 0.6
                     }
@@ -312,6 +319,8 @@ Kirigami.ScrollablePage {
 
                     Controls.Label {
                         visible: Accounts.count === 0
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap
                         text: i18n("No accounts added yet.")
                         opacity: 0.6
                     }
@@ -411,6 +420,8 @@ Kirigami.ScrollablePage {
 
                 Controls.Label {
                     visible: Transactions.count === 0
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
                     text: i18n("No transactions yet. Click New Transaction to record your first entry.")
                     opacity: 0.6
                 }

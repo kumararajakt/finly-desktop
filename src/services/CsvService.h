@@ -15,11 +15,10 @@ class CsvService : public QObject
 public:
     explicit CsvService(QObject *parent = nullptr);
 
-    Q_INVOKABLE QString pickCsvFile();
     Q_INVOKABLE QVariantMap parseCsvFile(const QString &filePath);
     Q_INVOKABLE QString normalizeDate(const QString &rawDate, const QString &formatHint = QStringLiteral("auto")) const;
     Q_INVOKABLE QString guessCategory(const QString &payee, const QString &notes = QString()) const;
-    Q_INVOKABLE QString exportTransactionsToCsv(QObject *proxyModelObj, const QString &defaultFilename);
+    Q_INVOKABLE QString exportTransactionsToCsv(QObject *proxyModelObj, const QString &fileUrl);
 
 private:
     static QVector<QStringList> parseRfc4180(const QString &content);

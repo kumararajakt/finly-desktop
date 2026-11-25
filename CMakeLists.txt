@@ -17,6 +17,9 @@ include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(ECMInstallIcons)
 include(FeatureSummary)
+if(ANDROID)
+    include(ECMAddAndroidApk)
+endif()
 
 find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS
     Core
@@ -25,19 +28,25 @@ find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS
     QuickControls2
     Sql
     Network
-    Widgets
 )
+
+if(NOT ANDROID)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Widgets)
+endif()
 
 qt_policy(SET QTP0001 NEW)
 
 find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
     Kirigami
     I18n
-    QQC2DesktopStyle
     CoreAddons
     Config
     Notifications
 )
+
+if(NOT ANDROID)
+    find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS QQC2DesktopStyle)
+endif()
 
 add_subdirectory(src)
 
@@ -46,8 +55,10 @@ if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
 
-install(PROGRAMS com.kumar.finly.desktop DESTINATION ${KDE_INSTALL_APPDIR})
-install(FILES com.kumar.finly.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
-install(FILES com.kumar.finly.svg DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
+if(NOT ANDROID)
+    install(PROGRAMS com.kumar.finly.desktop DESTINATION ${KDE_INSTALL_APPDIR})
+    install(FILES com.kumar.finly.metainfo.xml DESTINATION ${KDE_INSTALL_METAINFODIR})
+    install(FILES com.kumar.finly.svg DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps)
+endif()
 
 feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)

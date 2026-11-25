@@ -1,0 +1,11 @@
+[Icon Theme]
+Name=breeze
+Comment=Finly Bundled Breeze Icons
+Directories=actions/22
+
+[actions/22]
+Size=22
+Context=Actions
+Type=Scalable
+MinSize=16
+MaxSize=256

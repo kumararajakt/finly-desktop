@@ -30,7 +30,17 @@ ctest --test-dir build --output-on-failure
 
 ### Flatpak Build
 ```bash
-flatpak-builder --user --install --force-clean build-flatpak com.kumar.finly.json
+flatpak-builder --repo=flatpak-repo --force-clean build-flatpak com.kumar.finly.json
+flatpak build-bundle flatpak-repo finly-kde.flatpak com.kumar.finly
+```
+
+### Android APK Build (KDE Craft / Android SDK)
+Following [KDE Android Packaging](https://develop.kde.org/docs/packaging/android/), configure with your Android/Craft toolchain and build `create-apk-finly`:
+```bash
+cmake -B build-android -S . -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=/path/to/craft/share/cmake/CraftToolchain.cmake \
+  -DBUILD_TESTING=OFF
+cmake --build build-android --target create-apk-finly
 ```
 
 ## License

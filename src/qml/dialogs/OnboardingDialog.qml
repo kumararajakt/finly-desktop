@@ -10,8 +10,8 @@ Kirigami.Dialog {
     standardButtons: Kirigami.Dialog.NoButton
     closePolicy: Controls.Popup.NoAutoClose
     modal: true
-    preferredWidth: 400
-    maximumWidth: 420
+    preferredWidth: Math.min(420, root.width - Kirigami.Units.largeSpacing * 2)
+    maximumWidth: 440
     padding: Kirigami.Units.largeSpacing
 
     property string selectedCountry: "India"
@@ -43,12 +43,14 @@ Kirigami.Dialog {
                 Kirigami.FormData.label: i18n("Your Name:")
                 placeholderText: i18n("e.g. John Doe")
                 Layout.fillWidth: true
+                implicitWidth: 260
             }
 
             Controls.ComboBox {
                 id: countryCombo
                 Kirigami.FormData.label: i18n("Country:")
                 Layout.fillWidth: true
+                implicitWidth: 260
                 textRole: "label"
                 valueRole: "country"
                 model: SettingsMgr.countries.map(function(c) {

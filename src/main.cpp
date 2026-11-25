@@ -1,4 +1,9 @@
+#include <QtGlobal>
+#ifdef Q_OS_ANDROID
+#include <QGuiApplication>
+#else
 #include <QApplication>
+#endif
 #include <QDir>
 #include <QIcon>
 #include <QLibraryInfo>
@@ -26,7 +31,11 @@
 
 int main(int argc, char *argv[])
 {
+#ifdef Q_OS_ANDROID
+    QGuiApplication app(argc, argv);
+#else
     QApplication app(argc, argv);
+#endif
 
     KLocalizedString::setApplicationDomain("finly");
 
@@ -46,11 +55,25 @@ int main(int argc, char *argv[])
     if (appIcon.isNull() || appIcon.pixmap(32, 32).isNull()) {
         appIcon = QIcon(QStringLiteral(":/icons/com.kumar.finly.svg"));
     }
-    QApplication::setWindowIcon(appIcon);
-
+#ifdef Q_OS_ANDROID
+    QIcon::setThemeSearchPaths({QStringLiteral(":/icons")});
+    QIcon::setThemeName(QStringLiteral("breeze"));
+    QGuiApplication::setWindowIcon(appIcon);
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
+        QQuickStyle::setStyle(QStringLiteral("Material"));
     }
+#else
+    QApplication::setWindowIcon(appIcon);
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
+        const QString kdeDesktopStyle =
+            QLibraryInfo::path(QLibraryInfo::QmlImportsPath) + QStringLiteral("/org/kde/desktop");
+        if (QDir(kdeDesktopStyle).exists()) {
+            QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
+        } else {
+            QQuickStyle::setStyle(QStringLiteral("Fusion"));
+        }
+    }
+#endif
 
 
     Finly::DatabaseManager db;
@@ -84,9 +107,11 @@ int main(int argc, char *argv[])
     Finly::ReminderService reminderService(&db, &notificationService);
     reminderService.load();
     Finly::TrayService trayService;
+#ifndef Q_OS_ANDROID
     if (trayService.isAvailable()) {
         QApplication::setQuitOnLastWindowClosed(false);
     }
+#endif
     Finly::AiService aiService(&settingsMgr, &accountModel, &transactionModel, &budgetModel, &categoryModel, &loanModel, &notificationService);
 
     QQmlApplicationEngine engine;

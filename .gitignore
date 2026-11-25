@@ -1,5 +1,5 @@
 build/
-build-flatpak/
+build*/
 .flatpak-builder/
 flatpak-repo/
 *.flatpak

@@ -22,6 +22,7 @@ Kirigami.GlobalDrawer {
     modal: !root.isWidescreen
     drawerOpen: root.isWidescreen
     collapsible: root.isWidescreen
+    handleClosedIcon.source: Qt.platform.os === "android" ? "qrc:/icons/menu.svg" : ""
     width: Math.min(264, root.width * 0.82)
     padding: 0
     topPadding: 0
@@ -37,6 +38,7 @@ Kirigami.GlobalDrawer {
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.largeSpacing
+            Layout.topMargin: Qt.platform.os === "android" ? Kirigami.Units.largeSpacing * 2 : Kirigami.Units.largeSpacing
             Layout.bottomMargin: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
@@ -163,7 +165,7 @@ Kirigami.GlobalDrawer {
                     { id: "dashboard", label: i18n("Dashboard"), icon: "dashboard-show" },
                     { id: "budgets", label: i18n("Budgets"), icon: "office-chart-pie" },
                     { id: "categories", label: i18n("Categories"), icon: "tag" },
-                    { id: "loans", label: i18n("Loans & Debts"), icon: "wallet-open" }
+                    { id: "loans", label: i18n("Loans and Debts"), icon: "wallet-open" }
                 ]
 
                 delegate: Controls.ItemDelegate {
@@ -266,7 +268,10 @@ Kirigami.GlobalDrawer {
                 Controls.ToolButton {
                     text: i18n("+ Add")
                     font.pixelSize: 11
-                    onClicked: drawer.openAddAccount()
+                    onClicked: {
+                        if (drawer.modal) drawer.close();
+                        drawer.openAddAccount();
+                    }
                 }
             }
 
@@ -381,7 +386,10 @@ Kirigami.GlobalDrawer {
         Controls.ItemDelegate {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.smallSpacing
-            onClicked: drawer.openSettings()
+            onClicked: {
+                if (drawer.modal) drawer.close();
+                drawer.openSettings();
+            }
 
             contentItem: RowLayout {
                 spacing: Kirigami.Units.smallSpacing

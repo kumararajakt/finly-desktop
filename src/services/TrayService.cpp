@@ -1,15 +1,18 @@
 #include "TrayService.h"
 
+#ifndef Q_OS_ANDROID
 #include <QAction>
 #include <QCoreApplication>
 #include <QIcon>
 #include <QTimer>
+#endif
 
 namespace Finly {
 
 TrayService::TrayService(QObject *parent)
     : QObject(parent)
 {
+#ifndef Q_OS_ANDROID
     QIcon icon(QStringLiteral(":/icons/com.kumar.finly.svg"));
     if (icon.isNull() || icon.pixmap(32, 32).isNull()) {
         icon = QIcon::fromTheme(QStringLiteral("com.kumar.finly"));
@@ -50,11 +53,16 @@ TrayService::TrayService(QObject *parent)
             }
         });
     }
+#endif
 }
 
 bool TrayService::isAvailable() const
 {
+#ifdef Q_OS_ANDROID
+    return false;
+#else
     return m_trayIcon != nullptr && QSystemTrayIcon::isSystemTrayAvailable();
+#endif
 }
 
 } // namespace Finly

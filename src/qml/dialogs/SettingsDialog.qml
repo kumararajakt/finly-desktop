@@ -78,33 +78,23 @@ Kirigami.Dialog {
     ColumnLayout {
         spacing: Kirigami.Units.mediumSpacing
 
-        RowLayout {
+        Controls.TabBar {
+            id: settingsTabBar
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            currentIndex: dialog.activeTab
+            onCurrentIndexChanged: dialog.activeTab = currentIndex
 
-            Controls.Button {
-                Layout.fillWidth: true
+            Controls.TabButton {
                 text: i18n("General")
                 icon.name: "configure"
-                checkable: true
-                checked: dialog.activeTab === 0
-                onClicked: dialog.activeTab = 0
             }
-            Controls.Button {
-                Layout.fillWidth: true
+            Controls.TabButton {
                 text: i18n("AI Assistant")
                 icon.name: "quickopen"
-                checkable: true
-                checked: dialog.activeTab === 1
-                onClicked: dialog.activeTab = 1
             }
-            Controls.Button {
-                Layout.fillWidth: true
+            Controls.TabButton {
                 text: i18n("Reminders")
                 icon.name: "notifications"
-                checkable: true
-                checked: dialog.activeTab === 2
-                onClicked: dialog.activeTab = 2
             }
         }
 
@@ -150,6 +140,7 @@ Kirigami.Dialog {
 
             Controls.Switch {
                 id: traySwitch
+                visible: TraySvc.available
                 Kirigami.FormData.label: i18n("System Tray:")
                 text: i18n("Minimize to system tray when closing window")
             }
