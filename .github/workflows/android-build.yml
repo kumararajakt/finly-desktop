@@ -52,6 +52,7 @@ jobs:
         shell: bash
         run: |
           REPO_DIR="$PWD"
+          git config --global --add safe.directory "$REPO_DIR"
           git checkout -B master || true
           git branch --set-upstream-to=origin/master master || true
           source /home/user/CraftRoot/craft/craftenv.sh
