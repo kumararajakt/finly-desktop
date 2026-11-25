@@ -42,7 +42,11 @@ int main(int argc, char *argv[])
     aboutData.setDesktopFileName(QStringLiteral("com.kumar.finly"));
     KAboutData::setApplicationData(aboutData);
 
-    QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("com.kumar.finly")));
+    QIcon appIcon = QIcon::fromTheme(QStringLiteral("com.kumar.finly"));
+    if (appIcon.isNull() || appIcon.pixmap(32, 32).isNull()) {
+        appIcon = QIcon(QStringLiteral(":/icons/com.kumar.finly.svg"));
+    }
+    QApplication::setWindowIcon(appIcon);
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));

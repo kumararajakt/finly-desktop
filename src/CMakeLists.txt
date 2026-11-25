@@ -14,6 +14,13 @@ add_executable(finly
     services/AiService.cpp
 )
 
+qt_add_resources(finly "finly_icons"
+    PREFIX "/icons"
+    BASE "${CMAKE_SOURCE_DIR}"
+    FILES
+        "${CMAKE_SOURCE_DIR}/com.kumar.finly.svg"
+)
+
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/GlobalSidebar.qml PROPERTIES QT_RESOURCE_ALIAS GlobalSidebar.qml)
 set_source_files_properties(qml/AskFinlyDrawer.qml PROPERTIES QT_RESOURCE_ALIAS AskFinlyDrawer.qml)

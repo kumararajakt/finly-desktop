@@ -3,20 +3,20 @@
 #include <QAction>
 #include <QCoreApplication>
 #include <QIcon>
+#include <QTimer>
 
 namespace Finly {
 
 TrayService::TrayService(QObject *parent)
     : QObject(parent)
 {
-    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        return;
+    QIcon icon(QStringLiteral(":/icons/com.kumar.finly.svg"));
+    if (icon.isNull() || icon.pixmap(32, 32).isNull()) {
+        icon = QIcon::fromTheme(QStringLiteral("com.kumar.finly"));
     }
-
-    const QIcon icon = QIcon::fromTheme(
-        QStringLiteral("com.kumar.finly"),
-        QIcon::fromTheme(QStringLiteral("wallet-open"))
-    );
+    if (icon.isNull() || icon.pixmap(32, 32).isNull()) {
+        icon = QIcon::fromTheme(QStringLiteral("wallet-open"));
+    }
 
     m_trayIcon = new QSystemTrayIcon(icon, this);
     m_trayIcon->setToolTip(QStringLiteral("Finly — Personal Finance"));
@@ -41,12 +41,20 @@ TrayService::TrayService(QObject *parent)
         }
     });
 
-    m_trayIcon->show();
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        m_trayIcon->show();
+    } else {
+        QTimer::singleShot(1500, this, [this]() {
+            if (m_trayIcon && QSystemTrayIcon::isSystemTrayAvailable()) {
+                m_trayIcon->show();
+            }
+        });
+    }
 }
 
 bool TrayService::isAvailable() const
 {
-    return m_trayIcon != nullptr;
+    return m_trayIcon != nullptr && QSystemTrayIcon::isSystemTrayAvailable();
 }
 
 } // namespace Finly

@@ -10,7 +10,8 @@
     "--socket=fallback-x11",
     "--socket=wayland",
     "--device=dri",
-    "--filesystem=xdg-documents"
+    "--filesystem=xdg-documents",
+    "--talk-name=org.kde.StatusNotifierWatcher"
   ],
   "modules": [
     {
