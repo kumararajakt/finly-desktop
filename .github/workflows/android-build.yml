@@ -1,0 +1,83 @@
+name: Android Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  android-apk:
+    name: Android APK (arm64-v8a)
+    runs-on: ubuntu-latest
+    container:
+      image: invent-registry.kde.org/sysadmin/ci-images/android-qt611
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache KDE CraftRoot
+        id: cache-craft
+        uses: actions/cache@v4
+        with:
+          path: /home/user/CraftRoot
+          key: craft-android-qt611-arm64-v1
+
+      - name: Bootstrap Craft & Install KF6 Dependencies
+        run: |
+          if [ ! -f /home/user/CraftRoot/craft/craftenv.sh ]; then
+            printf "1\n\n\n\n\n" | python3 -c "$(curl -s https://invent.kde.org/packaging/craft/-/raw/master/setup/CraftBootstrap.py)" --prefix /home/user/CraftRoot
+          fi
+          source /home/user/CraftRoot/craft/craftenv.sh
+          craft extra-cmake-modules kirigami ki18n kcoreaddons kconfig knotifications
+
+      - name: Configure & Build Android APK
+        run: |
+          git checkout -B master || true
+          git branch --set-upstream-to=origin/master master || true
+          source /home/user/CraftRoot/craft/craftenv.sh
+          ln -sfn /home/user/CraftRoot/lib/qml/org /home/user/CraftRoot/qml/org
+          ANDROID_PLAT=$(ls /opt/android-sdk/platforms | sort -V | tail -n 1 | sed 's/android-//')
+          ANDROID_BT=$(ls /opt/android-sdk/build-tools | sort -V | tail -n 1)
+          /home/user/CraftRoot/bin/qt-cmake -S . -B build-android -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_FIND_ROOT_PATH=/home/user/CraftRoot \
+            -DCMAKE_PREFIX_PATH=/home/user/CraftRoot \
+            -DANDROID_ABI=arm64-v8a \
+            -DECM_ANDROID_STL_ARCH=aarch64-linux-android \
+            -DANDROID_API_LEVEL=28 \
+            -DANDROID_PLATFORM="android-${ANDROID_PLAT}" \
+            -DANDROID_SDK_ROOT=/opt/android-sdk \
+            -DANDROID_NDK_ROOT="$ANDROID_NDK_ROOT" \
+            -DANDROID_SDK_COMPILE_API="${ANDROID_PLAT}" \
+            -DANDROID_SDK_BUILD_TOOLS_REVISION="${ANDROID_BT}" \
+            -DANDROID_SYSROOT_PREFIX="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr" \
+            -DBUILD_TESTING=OFF
+          cmake --build build-android --target create-apk-com.kumar.finly
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finly-android-arm64
+          path: build-android/com.kumar.finly_build_apk/build/outputs/apk/debug/*.apk
+
+  release:
+    name: Publish GitHub Release
+    needs: [android-apk]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: finly-android-arm64
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*.apk
+          generate_release_notes: true

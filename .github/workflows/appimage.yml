@@ -1,0 +1,84 @@
+name: AppImage Build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  appimage:
+    name: Build AppImage (x86_64)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Build, Qt6 & KF6 Dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            base-devel cmake ninja extra-cmake-modules \
+            qt6-base qt6-declarative qt6-tools qt6-svg \
+            kirigami ki18n kcoreaddons kconfig knotifications \
+            qqc2-desktop-style breeze-icons wget file
+
+      - name: Build & Install into AppDir
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF
+          cmake --build build
+          DESTDIR="$PWD/AppDir" cmake --install build
+
+      - name: Download linuxdeploy & Qt Plugin
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-*.AppImage
+          ./linuxdeploy-x86_64.AppImage --appimage-extract && mv squashfs-root linuxdeploy-root
+          ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv squashfs-root linuxdeploy-qt-root
+
+      - name: Package AppImage
+        env:
+          QMAKE: /usr/bin/qmake6
+          QML_SOURCES_PATHS: src/qml
+          QT_PLUGIN_PATH: /usr/lib/qt6/plugins
+          QML2_IMPORT_PATH: /usr/lib/qt6/qml
+          OUTPUT: Finly-x86_64.AppImage
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          export PATH="$PWD/linuxdeploy-root/usr/bin:$PWD/linuxdeploy-qt-root/usr/bin:$PATH"
+          linuxdeploy \
+            --appdir AppDir \
+            --desktop-file AppDir/usr/share/applications/com.kumar.finly.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/com.kumar.finly.svg \
+            --plugin qt \
+            --output appimage
+
+      - name: Upload AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finly-appimage-x86_64
+          path: Finly-*.AppImage
+
+  release:
+    name: Attach AppImage to Release
+    needs: [appimage]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download AppImage
+        uses: actions/download-artifact@v4
+        with:
+          name: finly-appimage-x86_64
+          path: release-assets
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*.AppImage
+          generate_release_notes: true

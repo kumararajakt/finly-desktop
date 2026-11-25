@@ -1,42 +1,52 @@
-name: Build Flatpak
+name: Flatpak Build
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   flatpak:
+    name: Build Flatpak Bundle (x86_64)
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Flatpak tools
+      - name: Install Flatpak & KDE 6.10 Runtime/SDK
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
 
-      - name: Add Flathub remote
+      - name: Build Flatpak & Export Bundle
         run: |
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-      - name: Build Flatpak bundle
-        run: |
-          flatpak-builder --user --install-deps-from=flathub --force-clean --repo=flatpak-repo build-flatpak com.kumar.finly.json
+          flatpak-builder --user --repo=flatpak-repo --force-clean build-flatpak com.kumar.finly.json
           flatpak build-bundle flatpak-repo finly-kde.flatpak com.kumar.finly
 
-      - name: Upload Flatpak artifact
+      - name: Upload Flatpak Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: finly-kde-flatpak
+          name: finly-flatpak-x86_64
           path: finly-kde.flatpak
 
-      - name: Create GitHub Release
+  release:
+    name: Attach Flatpak to Release
+    needs: [flatpak]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Flatpak Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: finly-flatpak-x86_64
+          path: release-assets
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: finly-kde.flatpak
+          files: release-assets/*.flatpak
           generate_release_notes: true
