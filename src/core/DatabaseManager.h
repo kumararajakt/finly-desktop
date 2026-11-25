@@ -35,6 +35,7 @@ public:
     // Accounts
     QVector<Account> getAccounts();
     std::optional<Account> addAccount(const QString &name, const QString &type, double balance);
+    bool updateAccount(const QString &id, const QString &name, const QString &type, double balance);
     bool deleteAccount(const QString &idOrName);
 
     // Settings (Key-Value JSON store)

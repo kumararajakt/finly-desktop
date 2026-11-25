@@ -12,6 +12,8 @@ Kirigami.ScrollablePage {
     signal openAddTransaction()
     signal openAddAccount()
     signal openAskFinly(string prompt)
+    signal requestEditAccount(var accountData)
+    signal requestDeleteAccount(string accountId, string accountName)
 
     actions: [
         Kirigami.Action {
@@ -318,12 +320,40 @@ Kirigami.ScrollablePage {
                         model: Accounts
 
                         delegate: Controls.ItemDelegate {
+                            id: dashAccDelegate
+                            required property string accountId
                             required property string name
                             required property string accountType
                             required property double balance
 
                             Layout.fillWidth: true
                             onClicked: page.navigateToTransactions("account:" + name)
+
+                            TapHandler {
+                                acceptedButtons: Qt.RightButton
+                                onTapped: dashAccContextMenu.popup()
+                            }
+
+                            Controls.Menu {
+                                id: dashAccContextMenu
+
+                                Controls.MenuItem {
+                                    text: i18n("Edit Account")
+                                    icon.name: "document-edit"
+                                    onTriggered: page.requestEditAccount({
+                                        accountId: dashAccDelegate.accountId,
+                                        name: dashAccDelegate.name,
+                                        accountType: dashAccDelegate.accountType,
+                                        balance: dashAccDelegate.balance
+                                    })
+                                }
+
+                                Controls.MenuItem {
+                                    text: i18n("Delete Account")
+                                    icon.name: "edit-delete"
+                                    onTriggered: page.requestDeleteAccount(dashAccDelegate.accountId, dashAccDelegate.name)
+                                }
+                            }
 
                             contentItem: RowLayout {
                                 spacing: Kirigami.Units.smallSpacing

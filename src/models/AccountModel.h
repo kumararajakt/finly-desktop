@@ -36,6 +36,7 @@ public:
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool addAccount(const QString &name, const QString &type, double balance);
+    Q_INVOKABLE bool updateAccount(const QString &id, const QString &name, const QString &type, double balance);
     Q_INVOKABLE bool deleteAccount(const QString &idOrName);
     Q_INVOKABLE QStringList accountNames() const;
 

@@ -523,6 +523,72 @@ std::optional<Account> DatabaseManager::addAccount(const QString &name, const QS
     return acc;
 }
 
+bool DatabaseManager::updateAccount(const QString &id, const QString &name, const QString &type, double balance)
+{
+    const QString trimmedName = name.trimmed();
+    if (id.isEmpty() || trimmedName.isEmpty()) {
+        return false;
+    }
+
+    QMutexLocker locker(&m_mutex);
+    QSqlDatabase db = QSqlDatabase::database(m_connectionName);
+
+    QSqlQuery lookup(db);
+    lookup.prepare(QStringLiteral("SELECT name FROM accounts WHERE id = ?"));
+    lookup.addBindValue(id);
+    if (!lookup.exec() || !lookup.next()) {
+        m_lastError = lookup.lastError().text();
+        return false;
+    }
+    const QString oldName = lookup.value(0).toString();
+
+    if (!db.transaction()) {
+        m_lastError = db.lastError().text();
+        return false;
+    }
+
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral("UPDATE accounts SET name = ?, account_type = ?, balance = ? WHERE id = ?"));
+    q.addBindValue(trimmedName);
+    q.addBindValue(type);
+    q.addBindValue(balance);
+    q.addBindValue(id);
+    if (!q.exec() || q.numRowsAffected() <= 0) {
+        m_lastError = q.lastError().text();
+        db.rollback();
+        return false;
+    }
+
+    if (oldName != trimmedName) {
+        QSqlQuery txAcc(db);
+        txAcc.prepare(QStringLiteral("UPDATE transactions SET account = ? WHERE account = ?"));
+        txAcc.addBindValue(trimmedName);
+        txAcc.addBindValue(oldName);
+        if (!txAcc.exec()) {
+            m_lastError = txAcc.lastError().text();
+            db.rollback();
+            return false;
+        }
+
+        QSqlQuery txToAcc(db);
+        txToAcc.prepare(QStringLiteral("UPDATE transactions SET to_account = ? WHERE to_account = ?"));
+        txToAcc.addBindValue(trimmedName);
+        txToAcc.addBindValue(oldName);
+        if (!txToAcc.exec()) {
+            m_lastError = txToAcc.lastError().text();
+            db.rollback();
+            return false;
+        }
+    }
+
+    if (!db.commit()) {
+        m_lastError = db.lastError().text();
+        db.rollback();
+        return false;
+    }
+    return true;
+}
+
 bool DatabaseManager::deleteAccount(const QString &idOrName)
 {
     QMutexLocker locker(&m_mutex);

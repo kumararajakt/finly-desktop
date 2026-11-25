@@ -106,6 +106,22 @@ bool AccountModel::addAccount(const QString &name, const QString &type, double b
     return false;
 }
 
+bool AccountModel::updateAccount(const QString &id, const QString &name, const QString &type, double balance)
+{
+    if (!m_db || id.isEmpty() || name.trimmed().isEmpty()) {
+        return false;
+    }
+    const double adjustedBalance = (type == QStringLiteral("credit") || type == QStringLiteral("loan"))
+        ? -std::abs(balance)
+        : balance;
+
+    if (m_db->updateAccount(id, name, type, adjustedBalance)) {
+        refresh();
+        return true;
+    }
+    return false;
+}
+
 bool AccountModel::deleteAccount(const QString &idOrName)
 {
     if (!m_db) {

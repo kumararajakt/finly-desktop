@@ -112,12 +112,19 @@ Kirigami.ApplicationWindow {
         onSelectView: (view) => root.navigateToView(view)
         onSelectFilter: (filterId) => root.navigateToTransactions(filterId)
         onOpenAddTransaction: root.openNewTransaction()
-        onOpenAddAccount: accountDialog.open()
+        onOpenAddAccount: {
+            accountDialog.editingAccount = null;
+            accountDialog.open();
+        }
         onOpenSettings: {
             settingsDialog.activeTab = 0;
             settingsDialog.open();
         }
         onOpenAskFinly: root.openAskFinlyDrawer("", [])
+        onRequestEditAccount: (accountData) => {
+            accountDialog.editingAccount = accountData;
+            accountDialog.open();
+        }
         onRequestDeleteAccount: (accountId, accountName) => {
             root.pendingDeleteAccountId = accountId;
             root.pendingDeleteAccountName = accountName;
@@ -135,7 +142,15 @@ Kirigami.ApplicationWindow {
 
     // --- Dialogs ---
     OnboardingDialog { id: onboardingDialog }
-    AccountDialog { id: accountDialog }
+    AccountDialog {
+        id: accountDialog
+        onAccountRenamed: (oldName, newName) => {
+            if (root.activeFilter === "account:" + oldName) {
+                root.activeFilter = "account:" + newName;
+                TransactionFilter.filterAccount = newName;
+            }
+        }
+    }
     TransactionDialog { id: transactionDialog }
     BudgetDialog { id: budgetDialog }
     CategoryDialog { id: categoryDialog }
@@ -164,8 +179,20 @@ Kirigami.ApplicationWindow {
         DashboardPage {
             onNavigateToTransactions: (filterId) => root.navigateToTransactions(filterId)
             onOpenAddTransaction: root.openNewTransaction()
-            onOpenAddAccount: accountDialog.open()
+            onOpenAddAccount: {
+                accountDialog.editingAccount = null;
+                accountDialog.open();
+            }
             onOpenAskFinly: (prompt) => root.openAskFinlyDrawer(prompt, [])
+            onRequestEditAccount: (accountData) => {
+                accountDialog.editingAccount = accountData;
+                accountDialog.open();
+            }
+            onRequestDeleteAccount: (accountId, accountName) => {
+                root.pendingDeleteAccountId = accountId;
+                root.pendingDeleteAccountName = accountName;
+                deleteAccountPrompt.open();
+            }
         }
     }
 

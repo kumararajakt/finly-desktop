@@ -15,6 +15,7 @@ Kirigami.GlobalDrawer {
     signal openAddAccount()
     signal openSettings()
     signal openAskFinly()
+    signal requestEditAccount(var accountData)
     signal requestDeleteAccount(string accountId, string accountName)
 
     isMenu: false
@@ -284,6 +285,32 @@ Kirigami.GlobalDrawer {
                     hoverEnabled: true
                     highlighted: drawer.activeView === "transactions" && drawer.activeFilter === ("account:" + name)
                     onClicked: drawer.selectFilter("account:" + name)
+
+                    TapHandler {
+                        acceptedButtons: Qt.RightButton
+                        onTapped: accContextMenu.popup()
+                    }
+
+                    Controls.Menu {
+                        id: accContextMenu
+
+                        Controls.MenuItem {
+                            text: i18n("Edit Account")
+                            icon.name: "document-edit"
+                            onTriggered: drawer.requestEditAccount({
+                                accountId: accDelegate.accountId,
+                                name: accDelegate.name,
+                                accountType: accDelegate.accountType,
+                                balance: accDelegate.balance
+                            })
+                        }
+
+                        Controls.MenuItem {
+                            text: i18n("Delete Account")
+                            icon.name: "edit-delete"
+                            onTriggered: drawer.requestDeleteAccount(accDelegate.accountId, accDelegate.name)
+                        }
+                    }
 
                     contentItem: RowLayout {
                         spacing: Kirigami.Units.smallSpacing
