@@ -76,10 +76,12 @@ Kirigami.ScrollablePage {
         width: parent.width
         spacing: Kirigami.Units.mediumSpacing
 
-        // Search & Segmented Filter Tabs
-        RowLayout {
+        // Search & Segmented Filter Tabs (responsive: single row on widescreen, stacked/wrapped on mobile)
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            columns: root.isWidescreen ? 2 : 1
+            columnSpacing: Kirigami.Units.smallSpacing
+            rowSpacing: Kirigami.Units.smallSpacing
 
             Kirigami.SearchField {
                 Layout.fillWidth: true
@@ -88,24 +90,29 @@ Kirigami.ScrollablePage {
                 onTextChanged: TransactionFilter.searchQuery = text
             }
 
-            Repeater {
-                model: [
-                    { id: "all", label: i18n("All") },
-                    { id: "expense", label: i18n("Expenses") },
-                    { id: "income", label: i18n("Income") },
-                    { id: "transfer", label: i18n("Transfers") },
-                    { id: "pending", label: i18n("Pending") },
-                    { id: "flagged", label: i18n("Flagged") }
-                ]
+            Flow {
+                Layout.fillWidth: !root.isWidescreen
+                spacing: Kirigami.Units.smallSpacing
 
-                delegate: Controls.Button {
-                    required property var modelData
-                    text: modelData.label
-                    checkable: true
-                    checked: TransactionFilter.activeFilter === modelData.id
-                    onClicked: {
-                        root.activeFilter = modelData.id;
-                        TransactionFilter.activeFilter = modelData.id;
+                Repeater {
+                    model: [
+                        { id: "all", label: i18n("All") },
+                        { id: "expense", label: i18n("Expenses") },
+                        { id: "income", label: i18n("Income") },
+                        { id: "transfer", label: i18n("Transfers") },
+                        { id: "pending", label: i18n("Pending") },
+                        { id: "flagged", label: i18n("Flagged") }
+                    ]
+
+                    delegate: Controls.Button {
+                        required property var modelData
+                        text: modelData.label
+                        checkable: true
+                        checked: TransactionFilter.activeFilter === modelData.id
+                        onClicked: {
+                            root.activeFilter = modelData.id;
+                            TransactionFilter.activeFilter = modelData.id;
+                        }
                     }
                 }
             }
@@ -139,7 +146,7 @@ Kirigami.ScrollablePage {
 
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: 4
+                    columns: root.isWidescreen ? 4 : (page.width > 480 ? 2 : 1)
                     columnSpacing: Kirigami.Units.mediumSpacing
                     rowSpacing: Kirigami.Units.smallSpacing
 
@@ -285,6 +292,7 @@ Kirigami.ScrollablePage {
                 spacing: 0
 
                 RowLayout {
+                    visible: root.isWidescreen
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
 
@@ -359,7 +367,10 @@ Kirigami.ScrollablePage {
                     }
                 }
 
-                Kirigami.Separator { Layout.fillWidth: true }
+                Kirigami.Separator {
+                    visible: root.isWidescreen
+                    Layout.fillWidth: true
+                }
 
                 Repeater {
                     model: TransactionFilter
@@ -381,7 +392,9 @@ Kirigami.ScrollablePage {
                         Layout.fillWidth: true
                         spacing: 0
 
+                        // Desktop Table Row
                         RowLayout {
+                            visible: root.isWidescreen
                             Layout.fillWidth: true
                             Layout.topMargin: 6
                             Layout.bottomMargin: 6
@@ -531,7 +544,80 @@ Kirigami.ScrollablePage {
                             }
                         }
 
-                        Kirigami.Separator { Layout.fillWidth: true }
+                        // Mobile / Narrow Compact Row
+                        ColumnLayout {
+                            visible: !root.isWidescreen
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 8
+                            spacing: 4
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Controls.CheckBox {
+                                    checked: page.isSelected(txRow.txId)
+                                    onToggled: page.toggleRowSelection(txRow.txId)
+                                }
+                                Controls.Label {
+                                    Layout.fillWidth: true
+                                    text: txRow.payee
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+                                Controls.Label {
+                                    text: (txRow.amount > 0 && txRow.txType !== "transfer" ? "+" : "") + root.formatMoney(txRow.amount)
+                                    font.bold: true
+                                    color: txRow.txType === "transfer"
+                                        ? Kirigami.Theme.textColor
+                                        : (txRow.amount >= 0 ? Kirigami.Theme.positiveTextColor : Kirigami.Theme.negativeTextColor)
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 32
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Controls.Label {
+                                    text: txRow.date + " · " + txRow.category + " · " + txRow.account
+                                    font.pixelSize: 11
+                                    opacity: 0.75
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+                                Controls.ToolButton {
+                                    icon.name: "document-edit"
+                                    onClicked: page.openEditTransaction({
+                                        id: txRow.txId,
+                                        date: txRow.date,
+                                        payee: txRow.payee,
+                                        category: txRow.category,
+                                        categoryColor: txRow.categoryColor,
+                                        account: txRow.account,
+                                        toAccount: txRow.toAccount,
+                                        amount: txRow.amount,
+                                        type: txRow.txType,
+                                        status: txRow.status,
+                                        notes: txRow.notes
+                                    })
+                                }
+                                Controls.ToolButton {
+                                    icon.name: "flag"
+                                    onClicked: Transactions.toggleFlagTransaction(txRow.txId)
+                                }
+                                Controls.ToolButton {
+                                    icon.name: "edit-delete"
+                                    onClicked: Transactions.deleteTransaction(txRow.txId)
+                                }
+                            }
+                        }
+
+                        Kirigami.Separator {
+                    visible: root.isWidescreen
+                    Layout.fillWidth: true
+                }
                     }
                 }
             }

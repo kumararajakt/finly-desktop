@@ -69,7 +69,8 @@ Kirigami.ScrollablePage {
         }
 
         // Status Filter Tabs
-        RowLayout {
+        Flow {
+            Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
             Repeater {

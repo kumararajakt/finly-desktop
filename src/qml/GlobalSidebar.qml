@@ -19,9 +19,10 @@ Kirigami.GlobalDrawer {
     signal requestDeleteAccount(string accountId, string accountName)
 
     isMenu: false
-    modal: false
-    collapsible: false
-    width: 264
+    modal: !root.isWidescreen
+    drawerOpen: root.isWidescreen
+    collapsible: root.isWidescreen
+    width: Math.min(264, root.width * 0.82)
     padding: 0
     topPadding: 0
     bottomPadding: 0
@@ -109,7 +110,10 @@ Kirigami.GlobalDrawer {
             text: i18n("New Transaction")
             icon.name: "list-add"
             highlighted: true
-            onClicked: drawer.openAddTransaction()
+            onClicked: {
+                if (drawer.modal) drawer.close();
+                drawer.openAddTransaction();
+            }
         }
 
         // Conditional Ask Finly AI CTA
@@ -120,7 +124,10 @@ Kirigami.GlobalDrawer {
             Layout.rightMargin: Kirigami.Units.largeSpacing
             text: i18n("Ask Finly AI")
             icon.name: "quickopen"
-            onClicked: drawer.openAskFinly()
+            onClicked: {
+                if (drawer.modal) drawer.close();
+                drawer.openAskFinly();
+            }
         }
 
         Kirigami.Separator {
@@ -167,7 +174,10 @@ Kirigami.GlobalDrawer {
                     text: modelData.label
                     icon.name: modelData.icon
                     highlighted: drawer.activeView === modelData.id
-                    onClicked: drawer.selectView(modelData.id)
+                    onClicked: {
+                        if (drawer.modal) drawer.close();
+                        drawer.selectView(modelData.id);
+                    }
                 }
             }
 
@@ -196,7 +206,10 @@ Kirigami.GlobalDrawer {
                     Layout.leftMargin: Kirigami.Units.smallSpacing
                     Layout.rightMargin: Kirigami.Units.smallSpacing
                     highlighted: drawer.activeView === "transactions" && drawer.activeFilter === modelData.id
-                    onClicked: drawer.selectFilter(modelData.id)
+                    onClicked: {
+                        if (drawer.modal) drawer.close();
+                        drawer.selectFilter(modelData.id);
+                    }
 
                     contentItem: RowLayout {
                         spacing: Kirigami.Units.smallSpacing
@@ -284,7 +297,10 @@ Kirigami.GlobalDrawer {
                     Layout.rightMargin: Kirigami.Units.smallSpacing
                     hoverEnabled: true
                     highlighted: drawer.activeView === "transactions" && drawer.activeFilter === ("account:" + name)
-                    onClicked: drawer.selectFilter("account:" + name)
+                    onClicked: {
+                        if (drawer.modal) drawer.close();
+                        drawer.selectFilter("account:" + name);
+                    }
 
                     TapHandler {
                         acceptedButtons: Qt.RightButton

@@ -59,33 +59,37 @@ Kirigami.ScrollablePage {
         }
 
         // Search & Filter Tabs
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.smallSpacing
+            columns: root.isWidescreen ? 2 : 1
+            columnSpacing: Kirigami.Units.smallSpacing
+            rowSpacing: Kirigami.Units.smallSpacing
 
             Kirigami.SearchField {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 320
                 placeholderText: i18n("Search by friend, notes...")
                 onTextChanged: page.searchQuery = text.toLowerCase().trim()
             }
 
-            Item { Layout.fillWidth: true }
+            Flow {
+                Layout.fillWidth: !root.isWidescreen
+                spacing: Kirigami.Units.smallSpacing
 
-            Repeater {
-                model: [
-                    { id: "all", label: i18n("All") },
-                    { id: "lent", label: i18n("Money Lent") },
-                    { id: "borrowed", label: i18n("Money Borrowed") },
-                    { id: "settled", label: i18n("Settled (%1)", Loans.settledCount) }
-                ]
+                Repeater {
+                    model: [
+                        { id: "all", label: i18n("All") },
+                        { id: "lent", label: i18n("Money Lent") },
+                        { id: "borrowed", label: i18n("Money Borrowed") },
+                        { id: "settled", label: i18n("Settled (%1)", Loans.settledCount) }
+                    ]
 
-                delegate: Controls.Button {
-                    required property var modelData
-                    text: modelData.label
-                    checkable: true
-                    checked: page.activeFilter === modelData.id
-                    onClicked: page.activeFilter = modelData.id
+                    delegate: Controls.Button {
+                        required property var modelData
+                        text: modelData.label
+                        checkable: true
+                        checked: page.activeFilter === modelData.id
+                        onClicked: page.activeFilter = modelData.id
+                    }
                 }
             }
         }

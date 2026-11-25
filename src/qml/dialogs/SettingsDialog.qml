@@ -14,7 +14,7 @@ Kirigami.Dialog {
 
     title: i18n("Settings")
     standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
-    preferredWidth: 560
+    preferredWidth: Math.min(560, root.width - Kirigami.Units.largeSpacing * 2)
     padding: Kirigami.Units.largeSpacing
 
     onOpened: {

@@ -10,12 +10,13 @@ Kirigami.ApplicationWindow {
     property string activeFilter: "all"
     property string pendingDeleteAccountId: ""
     property string pendingDeleteAccountName: ""
+    readonly property bool isWidescreen: root.width >= Kirigami.Units.gridUnit * 45
 
     title: SettingsMgr.userName.length > 0 ? i18n("%1's Finly", SettingsMgr.userName) : i18n("Finly")
     width: 1440
     height: 900
-    minimumWidth: 960
-    minimumHeight: 640
+    minimumWidth: 360
+    minimumHeight: 600
 
     Component.onCompleted: {
         if (!SettingsMgr.hasProfile) {

@@ -25,8 +25,8 @@ Kirigami.Dialog {
 
     title: i18n("Import Transactions (CSV)")
     standardButtons: Kirigami.Dialog.NoButton
-    preferredWidth: 820
-    preferredHeight: 620
+    preferredWidth: Math.min(820, root.width - Kirigami.Units.largeSpacing * 2)
+    preferredHeight: Math.min(620, root.height - Kirigami.Units.largeSpacing * 2)
     padding: Kirigami.Units.largeSpacing
 
     function pickAndLoadCsv() {
