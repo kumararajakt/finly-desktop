@@ -14,10 +14,23 @@ Kirigami.ApplicationWindow {
     readonly property bool isWidescreen: root.width >= Kirigami.Units.gridUnit * 45
 
     title: SettingsMgr.userName.length > 0 ? i18n("%1's Finly", SettingsMgr.userName) : i18n("Finly")
-    width: 1440
-    height: 900
+    width: SettingsMgr.windowWidth
+    height: SettingsMgr.windowHeight
     minimumWidth: 360
     minimumHeight: 600
+
+    Timer {
+        id: saveGeometryTimer
+        interval: 400
+        onTriggered: {
+            if (Qt.platform.os !== "android" && root.width >= 360 && root.height >= 600) {
+                SettingsMgr.saveWindowGeometry(root.width, root.height);
+            }
+        }
+    }
+
+    onWidthChanged: if (Qt.platform.os !== "android") saveGeometryTimer.restart()
+    onHeightChanged: if (Qt.platform.os !== "android") saveGeometryTimer.restart()
 
     Component.onCompleted: {
         if (!SettingsMgr.hasProfile) {
@@ -26,6 +39,9 @@ Kirigami.ApplicationWindow {
     }
 
     onClosing: (close) => {
+        if (Qt.platform.os !== "android") {
+            SettingsMgr.saveWindowGeometry(root.width, root.height);
+        }
         if (SettingsMgr.minimizeToTray && TraySvc.available) {
             close.accepted = false;
             root.hide();

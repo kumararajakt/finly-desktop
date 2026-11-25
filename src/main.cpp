@@ -64,15 +64,11 @@ int main(int argc, char *argv[])
     }
 #else
     QApplication::setWindowIcon(appIcon);
+    QApplication::setStyle(QStringLiteral("breeze"));
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
-        const QString kdeDesktopStyle =
-            QLibraryInfo::path(QLibraryInfo::QmlImportsPath) + QStringLiteral("/org/kde/desktop");
-        if (QDir(kdeDesktopStyle).exists()) {
-            QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
-        } else {
-            QQuickStyle::setStyle(QStringLiteral("Fusion"));
-        }
+        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
     }
+
 #endif
 
 

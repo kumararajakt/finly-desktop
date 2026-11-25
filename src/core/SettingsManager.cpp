@@ -88,6 +88,15 @@ void SettingsManager::load()
         Q_EMIT minimizeToTrayChanged();
     }
 
+    if (const auto geomJson = m_db->getSetting(QStringLiteral("window_geometry"))) {
+        const QJsonObject obj = QJsonDocument::fromJson(geomJson->toUtf8()).object();
+        if (!obj.isEmpty()) {
+            m_windowWidth = qMax(360, obj.value(QStringLiteral("width")).toInt(1440));
+            m_windowHeight = qMax(600, obj.value(QStringLiteral("height")).toInt(900));
+            Q_EMIT windowGeometryChanged();
+        }
+    }
+
     if (const auto aiJson = m_db->getSetting(QStringLiteral("ai_config"))) {
         const QJsonObject obj = QJsonDocument::fromJson(aiJson->toUtf8()).object();
         if (!obj.isEmpty()) {
@@ -140,6 +149,28 @@ void SettingsManager::setMinimizeToTray(bool enabled)
         m_db->setSetting(QStringLiteral("minimize_to_tray"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
     }
     Q_EMIT minimizeToTrayChanged();
+}
+
+int SettingsManager::windowWidth() const { return m_windowWidth; }
+int SettingsManager::windowHeight() const { return m_windowHeight; }
+
+void SettingsManager::saveWindowGeometry(int width, int height)
+{
+    const int w = qMax(360, width);
+    const int h = qMax(600, height);
+    if (m_windowWidth == w && m_windowHeight == h) {
+        return;
+    }
+    m_windowWidth = w;
+    m_windowHeight = h;
+    if (m_db) {
+        const QJsonObject obj{
+            {QStringLiteral("width"), m_windowWidth},
+            {QStringLiteral("height"), m_windowHeight},
+        };
+        m_db->setSetting(QStringLiteral("window_geometry"), QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)));
+    }
+    Q_EMIT windowGeometryChanged();
 }
 
 bool SettingsManager::aiEnabled() const { return m_aiConfig.enabled; }

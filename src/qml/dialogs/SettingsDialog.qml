@@ -102,6 +102,7 @@ Kirigami.Dialog {
         Kirigami.FormLayout {
             visible: dialog.activeTab === 0
             Layout.fillWidth: true
+            wideMode: root.isWidescreen
 
             RowLayout {
                 Kirigami.FormData.label: i18n("Theme:")
@@ -126,6 +127,7 @@ Kirigami.Dialog {
                 id: nameField
                 Kirigami.FormData.label: i18n("Your Name:")
                 Layout.fillWidth: true
+                implicitWidth: 280
                 placeholderText: i18n("Enter your name...")
             }
 
@@ -133,6 +135,7 @@ Kirigami.Dialog {
                 id: countryCombo
                 Kirigami.FormData.label: i18n("Country & Currency:")
                 Layout.fillWidth: true
+                implicitWidth: 280
                 model: SettingsMgr.countries
                 textRole: "country"
                 valueRole: "country"
@@ -180,6 +183,7 @@ Kirigami.Dialog {
 
             Kirigami.FormLayout {
                 Layout.fillWidth: true
+                wideMode: root.isWidescreen
 
                 Controls.TextField {
                     id: ollamaEndpointField
@@ -296,16 +300,18 @@ Kirigami.Dialog {
 
             Controls.Switch {
                 id: reminderEnabledSwitch
-                text: i18n("Enable Native Desktop Reminder Notifications")
+                text: i18n("Enable Reminder Notifications")
             }
 
             Kirigami.FormLayout {
                 Layout.fillWidth: true
+                wideMode: root.isWidescreen
 
                 Controls.TextField {
                     id: reminderTitleField
                     Kirigami.FormData.label: i18n("Notification Title:")
                     Layout.fillWidth: true
+                    implicitWidth: 300
                     placeholderText: i18n("Finly Reminder")
                 }
 
@@ -313,6 +319,7 @@ Kirigami.Dialog {
                     id: reminderMessageField
                     Kirigami.FormData.label: i18n("Message:")
                     Layout.fillWidth: true
+                    implicitWidth: 300
                     placeholderText: i18n("Time to log today's expenses and review your budgets!")
                 }
             }

@@ -53,6 +53,7 @@ Kirigami.Dialog {
     }
 
     Kirigami.FormLayout {
+        wideMode: root.isWidescreen
         Controls.ComboBox {
             id: catCombo
             Kirigami.FormData.label: i18n("Category:")

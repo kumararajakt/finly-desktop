@@ -51,6 +51,7 @@ Kirigami.Dialog {
     }
 
     Kirigami.FormLayout {
+        wideMode: root.isWidescreen
         Controls.TextField {
             id: accNameField
             Kirigami.FormData.label: i18n("Account Name:")

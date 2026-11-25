@@ -21,7 +21,7 @@ Kirigami.GlobalDrawer {
     isMenu: false
     modal: !root.isWidescreen
     drawerOpen: root.isWidescreen
-    collapsible: root.isWidescreen
+    collapsible: false
     handleClosedIcon.source: Qt.platform.os === "android" ? "qrc:/icons/menu.svg" : ""
     width: Math.min(264, root.width * 0.82)
     padding: 0

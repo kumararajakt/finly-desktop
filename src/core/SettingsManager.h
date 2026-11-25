@@ -20,6 +20,8 @@ class SettingsManager : public QObject
     Q_PROPERTY(QString currencySymbol READ currencySymbol NOTIFY profileChanged)
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
     Q_PROPERTY(bool minimizeToTray READ minimizeToTray WRITE setMinimizeToTray NOTIFY minimizeToTrayChanged)
+    Q_PROPERTY(int windowWidth READ windowWidth NOTIFY windowGeometryChanged)
+    Q_PROPERTY(int windowHeight READ windowHeight NOTIFY windowGeometryChanged)
 
     Q_PROPERTY(bool aiEnabled READ aiEnabled NOTIFY aiConfigChanged)
     Q_PROPERTY(QString aiProvider READ aiProvider NOTIFY aiConfigChanged)
@@ -43,6 +45,9 @@ public:
     bool minimizeToTray() const;
     void setMinimizeToTray(bool enabled);
 
+    int windowWidth() const;
+    int windowHeight() const;
+
     bool aiEnabled() const;
     QString aiProvider() const;
     QVariantMap aiConfigMap() const;
@@ -52,12 +57,14 @@ public:
 
     Q_INVOKABLE void saveProfile(const QString &name, const QString &country, const QString &currencyCode, const QString &currencySymbol);
     Q_INVOKABLE void saveAIConfig(const QVariantMap &configMap);
+    Q_INVOKABLE void saveWindowGeometry(int width, int height);
     Q_INVOKABLE QVariantMap currencyForCountry(const QString &countryName) const;
 
 Q_SIGNALS:
     void profileChanged();
     void themeChanged();
     void minimizeToTrayChanged();
+    void windowGeometryChanged();
     void aiConfigChanged();
 
 private:
@@ -68,6 +75,8 @@ private:
     UserProfile m_profile;
     QString m_theme = QStringLiteral("auto");
     bool m_minimizeToTray = true;
+    int m_windowWidth = 1440;
+    int m_windowHeight = 900;
     AIConfig m_aiConfig;
 };
 

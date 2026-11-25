@@ -68,6 +68,7 @@ Kirigami.Dialog {
 
         Kirigami.FormLayout {
             Layout.fillWidth: true
+            wideMode: root.isWidescreen
 
             Controls.TextField {
                 id: amountField
