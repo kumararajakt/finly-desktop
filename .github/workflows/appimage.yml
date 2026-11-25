@@ -10,29 +10,57 @@ jobs:
     name: Build AppImage (x86_64)
     runs-on: ubuntu-latest
     container:
-      image: archlinux:latest
+      image: almalinux:9
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Build, Qt6 & KF6 Dependencies
+      - name: Install Base System Tools & Dev Libraries
+        shell: bash
         run: |
-          pacman -Syu --noconfirm --needed \
-            base-devel cmake ninja extra-cmake-modules \
-            qt6-base qt6-declarative qt6-tools qt6-svg \
-            kirigami ki18n kcoreaddons kconfig knotifications \
-            qqc2-desktop-style breeze-icons wget file
+          dnf install -y epel-release dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf install -y --allowerasing \
+            gcc-toolset-14 git cmake ninja-build python3.11 nodejs curl wget file tar xz bzip2 patch perl \
+            mesa-libGL-devel mesa-libEGL-devel libxkbcommon-devel libxkbcommon-x11-devel wayland-devel \
+            libX11-devel libXext-devel libxcb-devel xcb-util-*-devel fontconfig-devel freetype-devel \
+            dbus-devel sqlite-devel fuse-libs
+
+      - name: Cache KDE CraftRoot
+        id: cache-craft
+        uses: actions/cache@v4
+        with:
+          path: /root/CraftRoot
+          key: craft-linux-qt6-alma9-v1
+
+      - name: Bootstrap Craft & Install Qt6/KF6 Dependencies
+        shell: bash
+        run: |
+          source /opt/rh/gcc-toolset-14/enable
+          if [ ! -f /root/CraftRoot/craft/craftenv.sh ]; then
+            python3.11 -c "$(curl -sL https://invent.kde.org/packaging/craft/-/raw/master/setup/CraftBootstrap.py)" \
+              --prefix /root/CraftRoot --use-defaults
+          fi
+          source /root/CraftRoot/craft/craftenv.sh
+          craft extra-cmake-modules kirigami ki18n kcoreaddons kconfig knotifications qqc2-desktop-style breeze-icons
 
       - name: Build & Install into AppDir
+        shell: bash
         run: |
+          REPO_DIR="$PWD"
+          source /opt/rh/gcc-toolset-14/enable
+          source /root/CraftRoot/craft/craftenv.sh
+          cd "$REPO_DIR"
           cmake -S . -B build -G Ninja \
             -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_PREFIX_PATH=/root/CraftRoot \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF
           cmake --build build
           DESTDIR="$PWD/AppDir" cmake --install build
 
       - name: Download linuxdeploy & Qt Plugin
+        shell: bash
         run: |
           wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
@@ -41,16 +69,20 @@ jobs:
           ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv squashfs-root linuxdeploy-qt-root
 
       - name: Package AppImage
+        shell: bash
         env:
-          QMAKE: /usr/bin/qmake6
+          QMAKE: /root/CraftRoot/bin/qmake6
           QML_SOURCES_PATHS: src/qml
-          QT_PLUGIN_PATH: /usr/lib/qt6/plugins
-          QML2_IMPORT_PATH: /usr/lib/qt6/qml
+          QT_PLUGIN_PATH: /root/CraftRoot/plugins
+          QML2_IMPORT_PATH: /root/CraftRoot/qml
           OUTPUT: Finly-x86_64.AppImage
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
-          # Keep only SQLite driver so linuxdeploy-plugin-qt doesn't fail on missing Firebird/MySQL/Postgres libs
-          find /usr/lib/qt6/plugins/sqldrivers -maxdepth 1 -type f ! -name 'libqsqlite.so' -delete
+          # Keep only SQLite driver so linuxdeploy-plugin-qt doesn't bundle unused DB drivers
+          if [ -d /root/CraftRoot/plugins/sqldrivers ]; then
+            find /root/CraftRoot/plugins/sqldrivers -maxdepth 1 -type f ! -name 'libqsqlite.so' -delete
+          fi
+          export LD_LIBRARY_PATH="/root/CraftRoot/lib:${LD_LIBRARY_PATH:-}"
           export PATH="$PWD/linuxdeploy-root/usr/bin:$PWD/linuxdeploy-qt-root/usr/bin:$PATH"
           linuxdeploy \
             --appdir AppDir \

@@ -18,6 +18,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Ensure Node.js for local act runner
+        if: env.ACT
+        shell: bash
+        run: |
+          if ! command -v node >/dev/null 2>&1; then
+            if command -v zypper >/dev/null 2>&1; then
+              zypper --non-interactive install nodejs-default || zypper --non-interactive install nodejs22
+            elif command -v pacman >/dev/null 2>&1; then
+              pacman -Sy --noconfirm nodejs
+            elif command -v apt-get >/dev/null 2>&1; then
+              apt-get update && apt-get install -y nodejs
+            fi
+          fi
+
       - name: Cache KDE CraftRoot
         id: cache-craft
         uses: actions/cache@v4
@@ -26,6 +40,7 @@ jobs:
           key: craft-android-qt611-arm64-v1
 
       - name: Bootstrap Craft & Install KF6 Dependencies
+        shell: bash
         run: |
           if [ ! -f /home/user/CraftRoot/craft/craftenv.sh ]; then
             printf "1\n\n\n\n\n" | python3 -c "$(curl -s https://invent.kde.org/packaging/craft/-/raw/master/setup/CraftBootstrap.py)" --prefix /home/user/CraftRoot
@@ -34,10 +49,13 @@ jobs:
           craft extra-cmake-modules kirigami ki18n kcoreaddons kconfig knotifications
 
       - name: Configure & Build Android APK
+        shell: bash
         run: |
+          REPO_DIR="$PWD"
           git checkout -B master || true
           git branch --set-upstream-to=origin/master master || true
           source /home/user/CraftRoot/craft/craftenv.sh
+          cd "$REPO_DIR"
           ln -sfn /home/user/CraftRoot/lib/qml/org /home/user/CraftRoot/qml/org
           ANDROID_PLAT=$(ls /opt/android-sdk/platforms | sort -V | tail -n 1 | sed 's/android-//')
           ANDROID_BT=$(ls /opt/android-sdk/build-tools | sort -V | tail -n 1)
