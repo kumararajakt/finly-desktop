@@ -246,6 +246,45 @@ void LoanModel::addLoan(const QString &contactName, const QString &type, double 
     Q_EMIT loansChanged();
 }
 
+void LoanModel::addLoanFromTransaction(const QString &txId, const QString &contactName, const QString &type,
+                                       double amount, const QString &account,
+                                       const QString &startDate, const QString &notes)
+{
+    beginInsertRows(QModelIndex(), m_loans.size(), m_loans.size());
+    LoanRecord l;
+    l.id = QStringLiteral("loan-") + QUuid::createUuid().toString(QUuid::Id128).left(12);
+    l.contactName = contactName.trimmed();
+    l.type = type;
+    l.initialAmount = amount;
+    l.remainingAmount = amount;
+    l.account = account;
+    l.startDate = startDate;
+    l.notes = notes.trimmed();
+    l.status = QStringLiteral("active");
+    m_loans.append(l);
+    endInsertRows();
+    saveLoans();
+
+    if (m_txModel && !txId.isEmpty()) {
+        const bool isLent = (type == QStringLiteral("lent"));
+        m_txModel->updateTransaction(QVariantMap{
+            {QStringLiteral("id"), txId},
+            {QStringLiteral("date"), startDate},
+            {QStringLiteral("payee"), isLent ? QStringLiteral("Loan to %1").arg(l.contactName) : QStringLiteral("Loan from %1").arg(l.contactName)},
+            {QStringLiteral("category"), isLent ? QStringLiteral("Loan Given") : QStringLiteral("Loan Received")},
+            {QStringLiteral("categoryColor"), isLent ? QStringLiteral("#f59e0b") : QStringLiteral("#10b981")},
+            {QStringLiteral("account"), account},
+            {QStringLiteral("toAccount"), QString()},
+            {QStringLiteral("amount"), isLent ? -std::abs(amount) : std::abs(amount)},
+            {QStringLiteral("type"), QStringLiteral("transfer")},
+            {QStringLiteral("status"), QStringLiteral("cleared")},
+            {QStringLiteral("notes"), notes},
+        });
+    }
+
+    Q_EMIT loansChanged();
+}
+
 void LoanModel::recordPayment(const QString &loanId, double amount, const QString &account,
                               const QString &date, const QString &notes)
 {

@@ -26,6 +26,7 @@ Kirigami.Dialog {
 
         if (isEditing) {
             activeTab = editingTransaction.type || "expense";
+            loanDirection = editingTransaction.amount < 0 ? "lent" : "received";
             amountField.text = String(Math.abs(editingTransaction.amount));
             payeeField.text = editingTransaction.payee || "";
             dateField.text = editingTransaction.date || Qt.formatDate(new Date(), "yyyy-MM-dd");
@@ -75,15 +76,28 @@ Kirigami.Dialog {
             if (payeeText.length === 0) payeeText = i18n("Transfer to %1", toAccountCombo.currentText);
         } else if (activeTab === "loan") {
             if (payeeText.length === 0) return;
-            Loans.addLoan(
-                payeeText,
-                loanDirection === "lent" ? "lent" : "borrowed",
-                amt,
-                accName,
-                dateField.text.trim(),
-                "",
-                notesArea.text.trim()
-            );
+            var lType = loanDirection === "lent" ? "lent" : "borrowed";
+            if (isEditing) {
+                Loans.addLoanFromTransaction(
+                    editingTransaction.id,
+                    payeeText,
+                    lType,
+                    amt,
+                    accName,
+                    dateField.text.trim(),
+                    notesArea.text.trim()
+                );
+            } else {
+                Loans.addLoan(
+                    payeeText,
+                    lType,
+                    amt,
+                    accName,
+                    dateField.text.trim(),
+                    "",
+                    notesArea.text.trim()
+                );
+            }
             return;
         }
 
@@ -169,7 +183,6 @@ Kirigami.Dialog {
                 delegate: Controls.Button {
                     required property var modelData
                     Layout.fillWidth: true
-                    visible: !(dialog.isEditing && modelData.id === "loan")
                     text: modelData.label
                     checkable: true
                     checked: dialog.activeTab === modelData.id

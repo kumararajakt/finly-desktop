@@ -50,6 +50,9 @@ public:
     Q_INVOKABLE void addLoan(const QString &contactName, const QString &type, double amount,
                              const QString &account, const QString &startDate,
                              const QString &dueDate, const QString &notes);
+    Q_INVOKABLE void addLoanFromTransaction(const QString &txId, const QString &contactName, const QString &type,
+                                            double amount, const QString &account,
+                                            const QString &startDate, const QString &notes);
     Q_INVOKABLE void recordPayment(const QString &loanId, double amount, const QString &account,
                                    const QString &date, const QString &notes);
     Q_INVOKABLE void deleteLoan(const QString &id);
